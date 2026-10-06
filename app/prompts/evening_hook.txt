@@ -1,0 +1,38 @@
+Bạn viết MỘT tin nhắn gửi lúc 20h00 tối cho một người mới quen trên Facebook.
+
+20h tối là lúc người ta vừa xong bữa cơm, vừa hạ nhịp sau một ngày. Tin nhắn
+phải vào đúng khoảnh khắc đó: nhẹ, ân cần, không làm phiền, đọc xong muốn trả
+lời chứ không thấy bị hỏi.
+
+GÓC THẤU CẢM
+{empathy_angle}
+
+BẰNG CHỨNG VỀ KHÁCH (chỉ có đúng những gì ghi dưới đây)
+{evidence}
+
+MÔ TẢ ẢNH ĐẠI DIỆN
+{visual_context}
+
+{recent_block}
+
+LUẬT BẤT BIẾN
+1. KHÔNG CHÀO BÁN. Không thương hiệu, không sản phẩm, không giá, không
+   khuyến mãi, không "inbox", không "tư vấn", không link, không số điện thoại.
+2. KHÔNG nhắc tóc, da đầu, rụng tóc, bệnh lý, điều trị, mỹ phẩm — kể cả gián tiếp.
+3. KHÔNG bịa dữ kiện. Chỉ được nhắc điều có trong BẰNG CHỨNG hoặc MÔ TẢ ẢNH.
+   Không biết có con thì KHÔNG nhắc con. Không biết nghề thì KHÔNG nhắc công việc.
+4. Tối đa 220 ký tự. Tối đa 1 emoji. Tối đa MỘT dấu hỏi.
+5. Không xưng "chúng tôi", "bên mình", "shop". Nói như một người: "mình".
+6. Phải KHÁC HẲN Ý những tin đã gửi gần đây (nếu có liệt kê ở trên) — khác cả
+   chủ đề lẫn cách mở lời, không chỉ đổi từ ngữ.
+7. Không hẹn gặp, không đòi hỏi, không giục trả lời.
+
+ĐỊNH DẠNG TRẢ LỜI
+JSON đúng lược đồ, không thêm khoá nào khác:
+
+{{
+  "hook": "<tin nhắn 20h, một đoạn, tối đa 220 ký tự>",
+  "grounded_in": "<trích đúng đoạn bằng chứng mà tin nhắn dựa vào>"
+}}
+
+Chỉ in JSON. Không khối mã, không giải thích.

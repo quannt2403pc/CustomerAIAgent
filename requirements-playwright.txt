@@ -1,0 +1,4 @@
+# Chỉ cài khi cần Collector L3 (PLAYWRIGHT_ENABLED=true).
+# Tách riêng để image Docker mặc định không phình (plan.md R7).
+-r requirements.txt
+playwright==1.49.1

@@ -1,0 +1,41 @@
+# Giữ build context nhỏ và KHÔNG bao giờ copy secret vào image.
+.git
+.gitignore
+.gitattributes
+.github
+
+# Secret / file làm việc cá nhân
+.env
+.env.*
+!.env.example
+plan.md
+task.md
+CLAUDE.md
+AGENTS.md
+.claude
+.mcp.json
+cliproxy/config.yaml
+cliproxy/auths
+secrets
+
+# Python
+.venv
+venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# Frontend (có Dockerfile riêng)
+web/node_modules
+web/dist
+node_modules
+
+# Dữ liệu chạy thật
+var
+output.json
+test_results.json
+requirement

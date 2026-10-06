@@ -1,0 +1,82 @@
+# ============================================================
+# AI agent — file làm việc cá nhân (KHÔNG commit)
+# ============================================================
+.claude/
+.claude.json
+.claude.local.json
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+.mcp.json
+plan.md
+Plan.md
+task.md
+Task.md
+.cursor/
+.cursorrules
+.windsurf/
+.aider*
+.gemini/
+.gitnexus/
+
+# ============================================================
+# Bí mật & cấu hình môi trường — CHỈ .env.example được commit
+# ============================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
+credentials.json
+service-account*.json
+
+# CLIProxy: config.yaml chứa management key, auths/ chứa token OAuth
+cliproxy/config.yaml
+cliproxy/auths/
+cliproxy/logs/
+
+# ============================================================
+# Dữ liệu chạy thật / PII
+# ============================================================
+output.json
+data/
+var/
+uploads/
+artifacts/
+*.sqlite3
+
+# ============================================================
+# Python
+# ============================================================
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# ============================================================
+# Node / React
+# ============================================================
+node_modules/
+web/dist/
+web/.vite/
+npm-debug.log*
+pnpm-debug.log*
+
+# ============================================================
+# OS / IDE
+# ============================================================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+cliproxy/static/

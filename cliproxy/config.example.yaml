@@ -1,0 +1,37 @@
+# ============================================================================
+# Bản mẫu cấu hình CLIProxyAPI (image eceasy/cli-proxy-api).
+# `cliproxy-init` sao file này thành `cliproxy/config.yaml` (bị .gitignore) rồi
+# thay `__MGMT_KEY__` bằng CLIPROXY_MGMT_KEY trong .env.
+#
+# KHÔNG đặt secret thật vào file này — nó được commit lên Git (luật L4).
+# ============================================================================
+
+host: ""
+port: 8317
+
+remote-management:
+  # BẮT BUỘC true (bẫy B2): container `api` không phải 127.0.0.1, nếu để false
+  # thì mọi call /v0/management trả 403 kể cả khi gửi đúng key.
+  allow-remote: true
+
+  # Để RỖNG là sai (bẫy B4): route quản trị sẽ trả 404 — rất dễ đọc nhầm thành
+  # "sai URL" và đi sửa sai chỗ.
+  #
+  # CLIProxy sẽ BĂM khoá này rồi ghi đè lại config.yaml (bẫy B5). Lần sau mở
+  # file thấy chuỗi hash là bình thường, không phải file hỏng.
+  secret-key: "__MGMT_KEY__"
+
+  disable-control-panel: false
+
+# Mount volume `cliproxy_auths` vào đây để token OAuth sống qua restart.
+auth-dir: "/root/.cli-proxy-api"
+
+# Rỗng: chỉ container `api` trong mạng nội bộ Docker gọi tới, không cần thêm
+# một lớp khoá nữa.
+api-keys: []
+
+# App một người vận hành, chỉ một credential → không cần tiền tố model.
+force-model-prefix: false
+
+routing:
+  strategy: "fill-first"
