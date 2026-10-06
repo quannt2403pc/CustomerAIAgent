@@ -1,0 +1,32 @@
+# Cấu hình gitleaks — L4: không secret vào Git.
+title = "CustomerAIAgent gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "File mẫu/tài liệu/fixture dùng giá trị giả, và các thư mục không được Git theo dõi"
+paths = [
+  '''^\.env\.example$''',
+  '''^cliproxy/config\.example\.yaml$''',
+  '''^\.gitleaks\.toml$''',
+  '''^tests/fixtures/''',
+  # File/thư mục nằm ngoài tầm Git (đã .gitignore) — chỉ ảnh hưởng
+  # `detect --no-git`. Lưới an toàn thật cho chúng là `.gitignore` +
+  # `git ls-files` (xem task.md I-02), không phải gitleaks.
+  '''^\.env$''',
+  '''^cliproxy/config\.yaml$''',
+  '''^\.venv/''',
+  '''^venv/''',
+  '''^node_modules/''',
+  '''^web/node_modules/''',
+  '''^web/dist/''',
+  '''^var/''',
+  '''^\.claude/''',
+  '''^\.git/''',
+]
+regexes = [
+  '''change-me''',
+  '''SINH-NGAU-NHIEN''',
+  '''test-only-not-a-secret''',
+]

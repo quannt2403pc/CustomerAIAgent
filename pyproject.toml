@@ -1,0 +1,64 @@
+[project]
+name = "customer-ai-agent"
+version = "0.1.0"
+description = "Cỗ máy AI Profiler & Rapport (TES-3808)"
+requires-python = ">=3.12"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["app", "tests", "."]
+exclude = [".venv", "alembic/versions", "web", ".claude"]
+
+[tool.ruff.lint]
+select = [
+  "E",    # pycodestyle
+  "F",    # pyflakes
+  "I",    # isort
+  "UP",   # pyupgrade
+  "B",    # bugbear
+  "ASYNC",
+  "S",    # bandit
+  "T20",  # không print/pdb (trừ CLI, xem per-file-ignores)
+  "RUF",
+]
+ignore = [
+  "S101",     # assert — dùng trong test
+  "B008",     # FastAPI Depends() trong default arg là idiom chuẩn
+  # Toàn bộ comment/docstring của dự án viết tiếng Việt (plan.md §12.7). Luật
+  # "ambiguous unicode" báo động liên tục với –, …, chữ có dấu → tắt hẳn.
+  "RUF001",
+  "RUF002",
+  "RUF003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# main.py là CLI: in JSON ra stdout bằng sys.stdout.write, cho phép print
+"main.py" = ["T201"]
+# E501: fixture HTML phải sao NGUYÊN VĂN phản hồi thật, cắt dòng là làm sai dữ liệu.
+"tests/**" = ["S105", "S106", "S311", "T201", "E501"]
+"alembic/env.py" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+exclude = ['^alembic/versions/', '^web/', '^\.claude/']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/scheduler/*", "alembic/*"]

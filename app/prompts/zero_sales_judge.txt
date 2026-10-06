@@ -1,0 +1,37 @@
+Bạn là người kiểm duyệt nội dung. Nhiệm vụ: phát hiện Ý ĐỊNH BÁN HÀNG.
+
+ĐOẠN HỘI THOẠI CẦN KIỂM
+{messages}
+
+CÂU HỎI
+Đoạn trên có ý bán hàng, mời mua, dẫn dắt tới sản phẩm/dịch vụ, hay gợi mở về
+bệnh lý/điều trị để sau đó bán hàng không?
+
+TÍNH LÀ CÓ (verdict = YES) nếu thấy BẤT KỲ điều nào:
+- Nhắc tên thương hiệu, tên sản phẩm, tên dịch vụ.
+- Nhắc giá, chi phí, khuyến mãi, ưu đãi, quà tặng, bảo hành.
+- Mời mua, mời đặt hàng, mời để lại số điện thoại, mời inbox, mời đăng ký.
+- Nhắc tóc, da đầu, rụng tóc, bệnh lý, triệu chứng, điều trị, phục hồi — kể cả
+  chỉ hỏi thăm, vì đó là bước mở đường bán hàng trong ngành này.
+- Hứa hẹn hiệu quả, dẫn link, dẫn tới trang nào đó.
+- Gợi ý rằng người nhận "đang có vấn đề" cần được giúp bằng một giải pháp nào đó.
+
+TÍNH LÀ KHÔNG (verdict = NO) nếu đoạn chỉ gồm:
+- Chào hỏi, hỏi thăm ngày hôm nay, chia sẻ cảm xúc.
+- Đồng cảm với vất vả trong công việc hay chăm lo gia đình.
+- Khen ngợi cụ thể dựa trên ảnh hoặc thông tin trang cá nhân.
+- Chia sẻ trải nghiệm của chính người gửi.
+- Lời chúc, lời ngỏ "có gì cứ kể nhé".
+
+KHI KHÔNG CHẮC
+Trả YES. Bỏ sót một câu chào bán tệ hơn nhiều so với việc viết lại một lượt.
+
+ĐỊNH DẠNG TRẢ LỜI
+JSON đúng lược đồ, không thêm khoá nào khác:
+
+{{
+  "verdict": "YES" | "NO",
+  "reason": "<một câu ngắn nêu rõ căn cứ; nếu YES thì trích đúng cụm từ vi phạm>"
+}}
+
+Chỉ in JSON. Không khối mã, không giải thích thêm.

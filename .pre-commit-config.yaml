@@ -1,0 +1,33 @@
+# Chạy: pre-commit install && pre-commit run --all-files
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # requirement/ là đề bài gốc — giữ nguyên byte, không tự sửa.
+      - id: end-of-file-fixer
+        exclude: ^(\.claude/|requirement/)
+      - id: trailing-whitespace
+        exclude: ^(\.claude/|requirement/)
+      - id: check-yaml
+        exclude: ^(cliproxy/config\.example\.yaml|\.claude/)
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: detect-private-key
+
+  # L4 — chặn secret trước khi vào Git.
+  # Dùng `language: docker_image` thay vì hook golang chính thức: máy dev chỉ
+  # cần Docker (đã là phụ thuộc cứng của dự án), không cần cài Go toolchain.
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks (detect secrets)
+        language: docker_image
+        entry: zricethezav/gitleaks:latest protect --staged --config .gitleaks.toml --no-banner --redact
+        pass_filenames: false

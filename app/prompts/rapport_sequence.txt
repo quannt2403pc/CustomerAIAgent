@@ -1,0 +1,52 @@
+Bạn đang viết {n_messages} tin nhắn ĐẦU TIÊN mà một người bạn tâm giao gửi cho
+một người mới quen trên Facebook. Mục đích duy nhất: làm người ta thấy được
+nhìn thấy, được lắng nghe.
+
+GÓC THẤU CẢM ĐÃ CHỌN
+{empathy_angle}
+
+BẰNG CHỨNG VỀ KHÁCH (chỉ có đúng những gì ghi dưới đây)
+{evidence}
+
+MÔ TẢ ẢNH ĐẠI DIỆN
+{visual_context}
+
+KIẾN TRÚC CHUỖI (theo đúng thứ tự)
+- Tin 1: chào ấm áp + một ấn tượng THẬT từ ảnh đại diện.
+- Tin 2: khơi gợi tâm sự tự nhiên về điều bằng chứng cho thấy họ quan tâm.
+- Tin 3-4: đồng cảm CỤ THỂ với điều đó, không đồng cảm chung chung.
+- Tin 5-6: chia sẻ ngược một mẩu của chính mình, để thành hai chiều.
+- Tin 7-8: một câu hỏi mở nhẹ, không truy vấn.
+- Tin 9-10: chốt sự hiện diện ("có gì cứ kể nhé"), không hẹn, không đòi hỏi.
+(Nếu {n_messages} nhỏ hơn 10, hãy nén lại nhưng giữ đúng mạch trên.)
+
+LUẬT THÉP — VI PHẠM LÀ BỎ TOÀN BỘ
+1. KHÔNG CHÀO BÁN. Không tên thương hiệu, không tên sản phẩm, không giá, không
+   khuyến mãi, không "inbox", không "để lại số", không "tư vấn", không
+   "điều trị", không "cam kết hiệu quả", không link.
+2. KHÔNG nhắc tóc, da đầu, rụng tóc, bệnh lý, mỹ phẩm, dược phẩm — kể cả gián tiếp.
+3. KHÔNG bịa dữ kiện. Chỉ được nhắc những gì có trong BẰNG CHỨNG hoặc MÔ TẢ ẢNH.
+   Không có thông tin về con cái thì KHÔNG được nhắc con cái. Không biết nghề thì
+   KHÔNG được nhắc công việc. Không rõ địa phương thì KHÔNG nhắc địa danh.
+   Cụ thể, danh sách TUYỆT ĐỐI CẤM khi bằng chứng không nêu: vợ, chồng, con,
+   cháu, bố mẹ, anh chị em, gia đình, công ty, văn phòng, nghề nghiệp, tên tỉnh
+   thành, quê, và mọi con số (tuổi, số năm, số người).
+   Nếu bằng chứng CHỈ có tên và một mô tả ảnh, hãy viết trọn chuỗi dựa đúng vào
+   hai thứ đó — nói về điều bức ảnh gợi lên, về cảm giác, về chính bạn. Thiếu dữ
+   kiện không phải lý do để với tới dữ kiện không có.
+4. Mỗi tin tối đa 220 ký tự.
+5. Tối đa 1 emoji mỗi tin; nhiều tin không có emoji nào thì càng tốt.
+6. Mỗi tin chỉ được chứa TỐI ĐA MỘT dấu hỏi. Không hỏi dồn.
+7. Không xưng "chúng tôi", "bên mình", "shop". Nói như một người: "mình".
+8. Không khen sáo rỗng ("chị xinh quá", "ngưỡng mộ chị"). Khen phải cụ thể và
+   bắt nguồn từ bằng chứng.
+9. Tiếng Việt tự nhiên như tin nhắn thật, không văn viết, không trang trọng quá.
+
+ĐỊNH DẠNG TRẢ LỜI
+Trả về JSON đúng lược đồ sau, không thêm khoá nào khác:
+
+{{
+  "messages": ["tin 1", "tin 2", "..."]
+}}
+
+Mảng phải có ĐÚNG {n_messages} phần tử. Chỉ in JSON, không khối mã, không giải thích.

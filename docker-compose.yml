@@ -1,0 +1,95 @@
+# Service `web` được thêm ở D2.10.
+name: customeraiagent
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-appuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD chưa đặt trong .env}
+      POSTGRES_DB: ${POSTGRES_DB:-customeraiagent}
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-appuser} -d ${POSTGRES_DB:-customeraiagent}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    ports:
+      # Bind 127.0.0.1 (không phải 0.0.0.0): alembic/pytest chạy từ host cần
+      # tới được db, nhưng máy khác trong LAN thì không.
+      - "127.0.0.1:5432:5432"
+
+  # Tạo cliproxy/config.yaml TRƯỚC khi `cliproxy` lên (bẫy B8).
+  cliproxy-init:
+    image: busybox:1.37
+    environment:
+      CLIPROXY_MGMT_KEY: ${CLIPROXY_MGMT_KEY:?CLIPROXY_MGMT_KEY chưa đặt trong .env}
+    volumes:
+      - ./cliproxy:/work
+    command: ["sh", "/work/init.sh"]
+    restart: "no"
+
+  cliproxy:
+    # Image công khai, KHÔNG build từ nguồn — ta không sửa gì bên trong.
+    image: eceasy/cli-proxy-api:latest
+    restart: unless-stopped
+    depends_on:
+      cliproxy-init:
+        condition: service_completed_successfully
+    volumes:
+      # Mount cả THƯ MỤC, không mount riêng file config.yaml.
+      #
+      # Bẫy B8, phiên bản đo được (task.md I-05): `docker compose up -d` **tạo**
+      # container `cliproxy` (và phân giải bind-mount của nó) TRƯỚC khi chạy
+      # `cliproxy-init`, nên mount thẳng `./cliproxy/config.yaml` vẫn khiến
+      # Docker tạo một thư mục trùng tên — thứ tự depends_on không cứu được.
+      # Mount thư mục thì nguồn luôn tồn tại, và `-config` chỉ thẳng vào file.
+      - ./cliproxy:/cfg
+      - cliproxy_auths:/root/.cli-proxy-api
+    command: ["./CLIProxyAPI", "-config", "/cfg/config.yaml"]
+    ports:
+      - "8317:8317"
+      # 51121 là BẮT BUỘC (bẫy B1): Google redirect về
+      # http://localhost:51121/oauth-callback. Thiếu port này thì trình duyệt
+      # báo lỗi và token OAuth KHÔNG BAO GIỜ được lưu.
+      - "51121:51121"
+
+  api:
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      # Ghi đè host trong .env: trong mạng compose, database là `db`.
+      DATABASE_URL: >-
+        postgresql+psycopg://${POSTGRES_USER:-appuser}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-customeraiagent}
+      CLIPROXY_BASE_URL: http://cliproxy:8317
+    depends_on:
+      db:
+        condition: service_healthy
+      cliproxy:
+        # `service_started`, KHÔNG `service_healthy`: cliproxy chết thì api vẫn
+        # phải lên để trang Cài đặt hiện được "Chưa kết nối" (task.md D1.2).
+        condition: service_started
+    ports:
+      - "8000:8000"
+    volumes:
+      # Screenshot + ảnh upload sống qua restart; cũng là bằng chứng của L1.
+      - appvar:/app/var
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
+
+volumes:
+  pgdata:
+  appvar:
+  cliproxy_auths:

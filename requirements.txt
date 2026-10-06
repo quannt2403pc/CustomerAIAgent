@@ -1,0 +1,35 @@
+# ============================================================
+# Runtime
+# ============================================================
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.0
+
+# DB
+sqlalchemy[asyncio]==2.0.36
+psycopg[binary,pool]==3.2.3
+alembic==1.14.0
+greenlet==3.1.1
+
+# HTTP / scrape
+httpx[http2]==0.28.1
+beautifulsoup4==4.12.3
+lxml==5.3.0
+# BẮT BUỘC, không phải tuỳ chọn: Facebook trả body nén brotli. Thiếu gói này
+# httpx không giải nén được và parser đọc ra RỖNG — lỗi im lặng (task.md I-13).
+brotli==1.1.0
+
+# Ảnh
+pillow==11.0.0
+
+# Scheduler
+apscheduler==3.11.0
+tzdata==2024.2
+
+# Bảo mật
+cryptography==44.0.0
+
+# Tiện ích
+python-multipart==0.0.20
+slowapi==0.1.9
