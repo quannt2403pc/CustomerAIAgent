@@ -76,6 +76,20 @@ class Settings(BaseSettings):
     rapport_message_count: int = Field(default=10, ge=5, le=10)
     max_regenerate_attempts: int = 2
 
+    # --- Lịch 20h (APScheduler) --------------------------------------------
+    scheduler_enabled: bool = True
+    # Mốc cron của **job**. KHÔNG phải `trigger_time` trong output: field đó là
+    # hằng số `"20:00"` do đề bài quy định và được `Literal` của Pydantic khoá
+    # lại (app/schemas/output.py), nên hai thứ không thể lệch nhau trong JSON
+    # nộp bài. Hai biến dưới đây chỉ để **kiểm chứng** lịch chạy thật mà không
+    # phải chờ tới 20h (task.md D2.4 DoD) — triển khai thật thì để nguyên 20:00.
+    evening_cron_hour: int = Field(default=20, ge=0, le=23)
+    evening_cron_minute: int = Field(default=0, ge=0, le=59)
+    # Số profile tối đa mỗi lượt 20h. Mỗi hook là 2–6 lượt gọi model (sinh +
+    # judge + sinh lại), nên 50 profile có thể thành 300 lượt gọi trong một phút
+    # → chạm hạn mức nhà cung cấp (task.md I-25). Chặn trần có chủ đích.
+    evening_max_profiles: int = Field(default=20, ge=1, le=200)
+
     @field_validator("log_level")
     @classmethod
     def _upper_log_level(cls, v: str) -> str:

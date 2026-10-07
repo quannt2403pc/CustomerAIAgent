@@ -105,6 +105,9 @@ async def _upsert_profile(session: AsyncSession, outcome: AnalysisOutcome) -> Pr
         "basis": outcome.profile.demographics.basis if outcome.profile else {},
     }
     row.error_note = output.error_note
+    # Nguyên văn strict JSON của lượt này — `GET …/output.json` phục vụ lại đúng
+    # chuỗi đó, không dựng lại (task.md I-39).
+    row.last_output = output.to_dict()
 
     await session.flush()
     return row

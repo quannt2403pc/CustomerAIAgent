@@ -89,6 +89,27 @@ services:
       retries: 6
       start_period: 40s
 
+  web:
+    build:
+      context: ./web
+      target: runtime
+    restart: unless-stopped
+    depends_on:
+      # `service_started`, KHÔNG `service_healthy`: api chết thì trang Cài đặt
+      # vẫn phải mở được để người vận hành nhìn thấy lỗi và đi sửa (cùng lý lẽ
+      # với api → cliproxy ở trên).
+      api:
+        condition: service_started
+    ports:
+      # 5173 ra ngoài cho khớp README và thói quen dev; bên trong là nginx:80.
+      - "5173:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   pgdata:
   appvar:

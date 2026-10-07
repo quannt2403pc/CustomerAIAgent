@@ -1,0 +1,157 @@
+/*
+ * Design token — plan.md §6.1.
+ *
+ * Giá trị ở dạng "R G B" (không có `rgb()`) để Tailwind ghép được alpha:
+ * `rgb(var(--color-primary) / 0.1)`. Viết `#1E40AF` ở đây thì `bg-primary/10`
+ * sẽ im lặng không có tác dụng.
+ *
+ * Tương phản đã **đo bằng công thức WCAG**, không ước lượng (plan.md §6.2):
+ *
+ *   #1E3A8A trên #F8FAFC =  9.90:1  text thường
+ *   #1E3A8A trên #FFFFFF = 10.36:1  text trên card
+ *   #FFFFFF trên #1E40AF =  8.72:1  chữ trên nút primary
+ *   #475569 trên #F8FAFC =  7.24:1  text phụ
+ *   #2563EB trên #F8FAFC =  4.94:1  secondary
+ *   #B45309 trên #F8FAFC =  4.80:1  accent / cảnh báo
+ *   #047857 trên #F8FAFC =  5.24:1  thành công
+ *   #DC2626 trên #F8FAFC =  4.62:1  lỗi
+ *   #64748B trên #FFFFFF =  4.76:1  viền ô nhập (cần ≥3:1)
+ *
+ * BA GIÁ TRỊ ĐÃ ĐỔI so với bảng màu trong plan.md §6.1 vì **đo ra là fail**
+ * (task.md I-42). §6.2 yêu cầu ≥4.5:1 đo thật, nên §6.1 phải nhường:
+ *
+ *   `--color-accent`    #D97706 → #B45309   (3.04:1, fail)
+ *   `--color-secondary` #3B82F6 → #2563EB   (3.52:1, fail khi làm chữ)
+ *   viền ô nhập        #DBEAFE → #64748B   (1.22:1 — ô nhập trông như không có viền)
+ *
+ * `--color-border` **giữ** #DBEAFE: nó là đường phân cách trang trí giữa các
+ * khối, không phải ranh giới nhận dạng một control. WCAG 1.4.11 đòi 3:1 cho
+ * "ranh giới cần thiết để nhận ra component" — tức là ô nhập, không phải viền
+ * card. Vì vậy có **hai** token riêng: `border` (trang trí) và `input-border`
+ * (ranh giới control). Dùng lẫn là một trong hai lỗi: hoặc ô nhập vô hình,
+ * hoặc mọi card viền đậm như bảng tính.
+ */
+
+@import '@fontsource/fira-sans/400.css';
+@import '@fontsource/fira-sans/500.css';
+@import '@fontsource/fira-sans/600.css';
+@import '@fontsource/fira-code/400.css';
+@import '@fontsource/fira-code/600.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-background: 248 250 252; /* #F8FAFC */
+    --color-surface: 255 255 255;
+    --color-foreground: 30 58 138; /* #1E3A8A */
+    --color-primary: 30 64 175; /* #1E40AF */
+    --color-on-primary: 255 255 255;
+    --color-secondary: 37 99 235; /* #2563EB — 4.94:1 (#3B82F6 chỉ 3.52:1) */
+    --color-accent: 180 83 9; /* #B45309 — 4.80:1 (#D97706 chỉ 3.04:1) */
+    --color-muted: 233 238 246; /* #E9EEF6 */
+    --color-muted-foreground: 71 85 105; /* #475569 */
+    --color-border: 219 234 254; /* #DBEAFE — phân cách trang trí */
+    --color-input-border: 100 116 139; /* #64748B — ranh giới control, 4.76:1 */
+    --color-destructive: 220 38 38; /* #DC2626 */
+    --color-on-destructive: 255 255 255;
+    --color-success: 4 120 87; /* #047857 */
+    --color-warning: 180 83 9; /* #B45309 */
+    --color-ring: 30 64 175;
+  }
+
+  /*
+   * Dark mode: **không** đảo màu. Theo Material/HIG, dark mode dùng biến thể
+   * giảm độ bão hoà trên nền tối, và tương phản phải đo lại riêng — giá trị của
+   * light mode gần như luôn fail ở dark.
+   *
+   *   #E2E8F0 trên #0F172A = 14.48:1  text thường
+   *   #E2E8F0 trên #1E293B = 11.87:1  text trên card
+   *   #93B4FD trên #0F172A =  8.66:1  primary
+   *   #A5B4C9 trên #1E293B =  6.95:1  text phụ trên card
+   *   #FBBF24 trên #0F172A = 10.69:1  cảnh báo
+   *   #F87171 trên #0F172A =  6.45:1  lỗi
+   *   #94A3B8 trên #1E293B =  5.71:1  viền ô nhập (cần ≥3:1)
+   */
+  [data-theme='dark'] {
+    --color-background: 15 23 42; /* #0F172A */
+    --color-surface: 30 41 59; /* #1E293B */
+    --color-foreground: 226 232 240; /* #E2E8F0 */
+    --color-primary: 147 180 253; /* #93B4FD */
+    --color-on-primary: 15 23 42;
+    --color-secondary: 96 165 250;
+    --color-accent: 251 191 36; /* #FBBF24 */
+    --color-muted: 51 65 85;
+    --color-muted-foreground: 165 180 201; /* #A5B4C9 — 8.48:1 / 6.95:1 */
+    --color-border: 51 65 85;
+    --color-input-border: 148 163 184; /* #94A3B8 — 5.71:1 trên card */
+    --color-destructive: 248 113 113; /* #F87171 — 6.45:1 */
+    --color-on-destructive: 15 23 42;
+    --color-success: 52 211 153;
+    --color-warning: 251 191 36;
+    --color-ring: 147 180 253;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    /* 16px cơ sở — nhỏ hơn làm iOS tự zoom khi focus input. */
+    font-size: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    line-height: 1.6; /* 1.5–1.75 cho body (ui-ux-pro-max: line-height) */
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-mono font-semibold tracking-tight;
+  }
+
+  /*
+   * Focus ring **toàn cục**, không để từng component tự lo.
+   * `outline: none` không kèm thay thế là vi phạm bị nêu tên trong plan.md §6.2.
+   */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Số trong bảng/KPI dùng chữ số đẳng khoảng → cột không nhảy khi giá trị đổi. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* plan.md §6.2 — tôn trọng `prefers-reduced-motion`. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Skip link: hiện ra **chỉ khi** nhận focus bằng bàn phím. */
+  .skip-link {
+    @apply sr-only;
+  }
+
+  .skip-link:focus {
+    @apply not-sr-only fixed left-4 top-4 z-[100] rounded bg-primary px-4 py-2
+      text-sm font-medium text-primary-foreground shadow-lg;
+  }
+}

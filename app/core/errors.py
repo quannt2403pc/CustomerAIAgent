@@ -102,6 +102,21 @@ class GatewayBadResponse(GatewayError):
     message = "Cổng model trả về nội dung không đọc được."
 
 
+class GatewayCallbackRejected(GatewayBadResponse):
+    """URL callback người dùng dán không dùng được — lỗi **đầu vào**, không phải lỗi cổng.
+
+    Vì sao tách khỏi `GatewayBadResponse` (task.md I-36): nó mang `http_status`
+    502, nghĩa là "cổng phía trên hỏng". Nhưng người dùng dán sai URL thì không
+    có gì hỏng — họ cần sửa thao tác. UI nhận 502 sẽ hiện "hệ thống lỗi, thử lại
+    sau" trong khi câu đúng là "dán lại URL". Kế thừa để mọi chỗ đang bắt
+    `GatewayBadResponse` vẫn bắt được, chỉ `http_status` đổi thành 400.
+    """
+
+    code = "E-LLM-400-CALLBACK"
+    http_status = 400
+    message = "URL callback không dùng được. Hãy sao chép lại toàn bộ URL sau khi đồng ý ở Google."
+
+
 # ---------------------------------------------------------------------------
 # Collector Facebook
 # ---------------------------------------------------------------------------

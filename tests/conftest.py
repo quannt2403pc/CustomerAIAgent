@@ -74,6 +74,28 @@ def _reset_process_wide_caches():
     get_catalog().invalidate()
 
 
+async def _reset_config_tables(session: AsyncSession) -> None:
+    """Mỗi test chạm DB bắt đầu từ **máy mới cài**: chưa chọn cổng, chưa có key.
+
+    Vì sao cần: `llm_settings` chỉ có **một hàng** dùng chung (plan.md §12.1), và
+    DB dev giữ hàng đó sau khi người vận hành cấu hình thật qua UI/API. Test viết
+    theo giả định "cài mới → `provider == ''`" vì vậy đỏ lên trên máy *đã dùng
+    thật* mà xanh trên máy sạch — kiểu lỗi tệ nhất của bộ test: nó phụ thuộc máy
+    chạy, không phụ thuộc code.
+
+    Xoá trong transaction của test nên dữ liệu thật trở lại nguyên vẹn sau rollback.
+    Cố ý **không** xoá `profiles`: test nào đếm profile thì tự dọn, còn xoá hộ ở
+    đây sẽ che mất việc chúng đang đếm trên phạm vi quá rộng.
+    """
+    from sqlalchemy import delete
+
+    from app.models import LlmCredential, LlmSettings
+
+    await session.execute(delete(LlmCredential))
+    await session.execute(delete(LlmSettings))
+    await session.flush()
+
+
 @pytest.fixture
 def fernet_env(monkeypatch) -> None:
     monkeypatch.setenv("APP_ENCRYPTION_KEY", TEST_FERNET_KEY)
@@ -103,6 +125,7 @@ async def db_session(monkeypatch) -> AsyncIterator[AsyncSession]:
     maker = async_sessionmaker(bind=conn, expire_on_commit=False)
     session = maker()
     try:
+        await _reset_config_tables(session)
         yield session
     finally:
         await session.close()
