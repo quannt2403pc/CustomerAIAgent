@@ -14,9 +14,13 @@ from __future__ import annotations
 import argparse
 
 from app.core.eventloop import ensure_compatible_event_loop_policy
+from app.core.stdio import force_utf8_stdio
 
 
 def main() -> None:
+    # UTF-8 trước tiên: `--help` của argparse có tiếng Việt, và console Windows
+    # mặc định cp1252 sẽ nổ ngay ở dòng trợ giúp đầu tiên (task.md I-61).
+    force_utf8_stdio()
     ensure_compatible_event_loop_policy()
 
     parser = argparse.ArgumentParser(description="Chạy API Cỗ máy AI Profiler & Rapport")

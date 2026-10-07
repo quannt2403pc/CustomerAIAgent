@@ -16,6 +16,7 @@ from app.llm.base import ModelInfo
 from app.llm.catalog import ModelCatalog
 from app.llm.resolver import get_active_config, resolve_gateway, set_model, set_provider
 from app.services import credentials
+from tests.source_guards import find_in_code
 
 APP_DIR = pathlib.Path(__file__).resolve().parents[1] / "app"
 
@@ -226,23 +227,80 @@ async def test_unknown_provider_override_is_rejected(db_session) -> None:
 # ---------------------------------------------------------------------------
 # Luật L6 — không hardcode danh mục model
 # ---------------------------------------------------------------------------
+MODEL_NAME_PATTERN = re.compile(
+    r"\b(gemini|claude|gpt|text-embedding)[-.][a-z0-9.\-]+", re.IGNORECASE
+)
+
+
+def find_hardcoded_model_names(source: str) -> list[str]:
+    """Các dòng **code thật** có nhúng tên model.
+
+    Comment và docstring được phép nêu tên model — chúng là cách duy nhất ghi lại
+    bẫy I-06/I-10/I-15 cho người đọc sau. Thứ bị cấm là tên model nằm trong
+    *giá trị* mà chương trình dùng.
+
+    Bản quét nằm ở `tests/source_guards.py` — dùng chung với canh gác L3, vì hai
+    bản riêng thì mỗi lần sửa chỉ sửa được một bên (đúng lỗi gốc của I-29).
+    """
+    return find_in_code(source, MODEL_NAME_PATTERN)
+
+
 def test_no_model_name_is_hardcoded_in_app_source() -> None:
-    """Luật L6, canh gác bằng grep.
+    """Luật L6, canh gác trên toàn bộ `app/`.
 
     `gemini-flash-latest` tồn tại trong cổng API-key nhưng **không** tồn tại
     trong channel `antigravity` — hardcode là sai lúc nào không biết (I-06 đo
     thật: danh mục antigravity gồm `gemini-3-flash`, `gemini-pro-agent`, …).
     """
-    pattern = re.compile(r"\b(gemini|claude|gpt|text-embedding)[-.][a-z0-9.\-]+", re.IGNORECASE)
     offenders: list[str] = []
-
     for path in sorted(APP_DIR.rglob("*.py")):
-        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            stripped = line.lstrip()
-            # Comment/docstring được phép nêu tên model để giải thích bẫy.
-            if stripped.startswith("#") or stripped.startswith(('"""', "'''", "|", "*")):
-                continue
-            if pattern.search(line):
-                offenders.append(f"{path.relative_to(APP_DIR.parent)}:{lineno}: {stripped}")
+        rel = path.relative_to(APP_DIR.parent)
+        offenders += [
+            f"{rel}:{hit}" for hit in find_hardcoded_model_names(path.read_text(encoding="utf-8"))
+        ]
 
     assert not offenders, "Tên model bị hardcode trong source (luật L6):\n" + "\n".join(offenders)
+
+
+def test_bo_canh_gac_l6_khong_rong_nghia() -> None:
+    """Canh gác phải **bắt được** vi phạm thật, không chỉ luôn xanh.
+
+    Trước đây điều này được kiểm **bằng tay** một lần (ghi trong task.md D1.10):
+    thêm `DEFAULT_MODEL = "gemini-3-flash"` thì test đỏ, bỏ ra thì xanh. Kiểm tay
+    không sống qua lần refactor nào — nên nó thành test ở đây.
+    """
+    assert find_hardcoded_model_names(
+        'DEFAULT_MODEL = "gemini-3-flash"\n'
+    ), "canh gác L6 không bắt được một tên model nhúng thẳng vào code"
+    # Và các biến thể dễ lọt.
+    assert find_hardcoded_model_names('FALLBACKS = ["claude-3-opus"]\n')
+    assert find_hardcoded_model_names('if model == "gpt-4o":\n    pass\n')
+
+
+def test_bo_canh_gac_l6_khong_bat_oan_comment_va_docstring() -> None:
+    """Dòng **tiếp sau** của docstring nhiều dòng từng bị bắt oan.
+
+    Bản cũ chỉ bỏ qua dòng *bắt đầu* bằng `\"\"\"`, nên một docstring giải thích
+    bẫy I-10 bị báo vi phạm L6. Báo động giả làm người ta mất tin vào cái canh
+    gác rồi tắt nó đi — tệ hơn là không có.
+    """
+    source = (
+        '"""Tài liệu hoá bẫy.\n'
+        "\n"
+        "Đo thật: `gemini-flash-latest` chỉ có ở cổng B,\n"
+        "còn `gemini-3-flash` chỉ có ở cổng A.\n"
+        '"""\n'
+        "\n"
+        "x = 1  # gemini-2.5-flash có trong danh mục nhưng gọi thì 404\n"
+    )
+    assert find_hardcoded_model_names(source) == []
+
+
+def test_bo_canh_gac_l6_khong_bi_dau_thang_trong_chuoi_lam_lech() -> None:
+    """Cắt comment theo vị trí **tokenize**, không bằng `line.find('#')`.
+
+    Dòng dưới có dấu `#` trong chuỗi; đoán bằng `find` sẽ cắt mất phần code thật
+    và bỏ lọt tên model.
+    """
+    source = 'SEP = "#"; DEFAULT = "gemini-3-flash"\n'
+    assert find_hardcoded_model_names(source)

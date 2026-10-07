@@ -399,3 +399,44 @@ def test_any_setup_exception_still_prints_json(monkeypatch, capsys, tmp_path) ->
     body = json.loads(capsys.readouterr().out)
     assert code == 1
     assert "RuntimeError" in body["error_note"]
+
+
+# ---------------------------------------------------------------------------
+# I-61 — stdout/stderr phải là UTF-8 trước khi in bất cứ gì
+# ---------------------------------------------------------------------------
+def test_entrypoint_ep_utf8_truoc_khi_in() -> None:
+    """Trên Windows console mặc định `cp1252`, mọi output tiếng Việt đều nổ.
+
+    Đây **không** phải chuyện thẩm mỹ: `sys.stdout.write` của `_emit` nổ với
+    `UnicodeEncodeError`, tức hợp đồng cốt lõi của CLI — *mọi nhánh đều in JSON
+    hợp lệ* — bị phá. Docker (Linux, UTF-8 mặc định) che mất lỗi này, nên nó chỉ
+    lộ ở nhánh "chạy không Docker" của README.
+
+    Test khẳng định lời gọi nằm **trước** lời gọi event-loop policy, vì cái sau
+    đã được đặt ở vị trí sớm nhất có thể từ I-04.
+    """
+    import pathlib
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    for name in ("main.py", "run.py"):
+        source = (root / name).read_text(encoding="utf-8")
+        assert "force_utf8_stdio()" in source, f"{name} chưa ép UTF-8 cho stdio (I-61)"
+        assert source.index("force_utf8_stdio()") < source.index(
+            "ensure_compatible_event_loop_policy()"
+        ), f"{name}: phải ép UTF-8 TRƯỚC, nếu không dòng in đầu tiên đã nổ"
+
+
+def test_force_utf8_stdio_giu_strict_cho_stdout() -> None:
+    """stdout là JSON nộp bài — một ký tự bị thay bằng `?` là dữ liệu sai âm thầm.
+
+    stderr thì ngược lại: `replace` để một dòng log hỏng không làm sập tiến trình.
+    """
+    import inspect
+
+    from app.core.stdio import force_utf8_stdio
+
+    source = inspect.getsource(force_utf8_stdio)
+    assert '"strict"' in source
+    assert '"replace"' in source
+    # Và nó phải chịu được stream không có `reconfigure` (pytest thay stdout).
+    force_utf8_stdio()

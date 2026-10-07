@@ -1,0 +1,9 @@
+# Build context của `web` — giữ nhỏ và không copy thứ không cần.
+node_modules
+dist
+.vite
+*.log
+
+# Không bao giờ copy secret vào image
+.env
+.env.*

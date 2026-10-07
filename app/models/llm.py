@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base, CreatedAt, UuidPk
 
 PROVIDERS = ("antigravity", "google_api_key")
-CREDENTIAL_KINDS = ("google_api_key", "fb_cookie")
+CREDENTIAL_KINDS = ("google_api_key", "fb_cookie", "page_access_token")
 
 
 class LlmSettings(UuidPk, Base):
@@ -48,7 +48,9 @@ class LlmCredential(UuidPk, CreatedAt, Base):
 
     __tablename__ = "llm_credentials"
     __table_args__ = (
-        CheckConstraint("kind IN ('google_api_key', 'fb_cookie')", name="kind_known"),
+        CheckConstraint(
+            "kind IN ('google_api_key', 'fb_cookie', 'page_access_token')", name="kind_known"
+        ),
     )
 
     kind: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)

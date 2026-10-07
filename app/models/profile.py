@@ -39,6 +39,18 @@ class Profile(UuidPk, CreatedAt, Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     error_note: Mapped[str | None] = mapped_column(Text)
 
+    # Strict JSON **nguyên văn** của lần phân tích gần nhất (task.md I-39).
+    #
+    # Có vẻ dư thừa vì mọi field đều dựng lại được từ các bảng khác, nhưng DoD
+    # D2.3 đòi `GET /api/profiles/{id}/output.json` **giống hệt** CLI. Dựng lại
+    # thì điều đó chỉ đúng *chừng nào* hai đường code còn khớp nhau — và nó đã
+    # không khớp ngay ở ca đầu tiên thử: hook 20h không có `run_id`, nên lượt
+    # chạy có hook bị loại vì kiểm duyệt sẽ "dựng lại" được hook **cũ** của lượt
+    # trước, biến một output trung thực (`evening_hook_message: null`) thành một
+    # output có nội dung chưa bao giờ được duyệt. Lưu nguyên văn thì đúng **theo
+    # cấu trúc**, không phải theo lời hứa.
+    last_output: Mapped[dict | None] = mapped_column(JSONB)
+
     evidence: Mapped[list[ProfileEvidence]] = relationship(
         back_populates="profile", cascade="all, delete-orphan"
     )

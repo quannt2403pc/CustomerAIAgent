@@ -29,7 +29,12 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 
 from app.core.config import Settings, get_settings
-from app.core.errors import GatewayAuthError, GatewayBadResponse, GatewayDisabled
+from app.core.errors import (
+    GatewayAuthError,
+    GatewayBadResponse,
+    GatewayCallbackRejected,
+    GatewayDisabled,
+)
 from app.core.logging import get_logger
 from app.llm.base import ModelInfo
 from app.llm.gemini_wire import request_with_retry
@@ -192,7 +197,7 @@ class CliProxyAdmin:
         """
         code, state_in_url = _parse_callback_url(callback_url)
         if state_in_url and state_in_url != state:
-            raise GatewayBadResponse(
+            raise GatewayCallbackRejected(
                 "URL bạn dán thuộc một phiên đăng nhập khác. Hãy bấm "
                 "“Đăng nhập Google” lại rồi dán URL mới.",
                 detail="state trong URL không khớp state của phiên",
@@ -265,7 +270,7 @@ def _parse_callback_url(callback_url: str) -> tuple[str, str | None]:
     """Bóc `code` (và `state` nếu có) khỏi URL callback người dùng dán."""
     raw = (callback_url or "").strip()
     if not raw:
-        raise GatewayBadResponse("Chưa dán URL callback.", detail="callback_url rỗng")
+        raise GatewayCallbackRejected("Chưa dán URL callback.", detail="callback_url rỗng")
 
     query = urlparse(raw).query or raw.partition("?")[2]
     params = parse_qs(query)
@@ -278,7 +283,7 @@ def _parse_callback_url(callback_url: str) -> tuple[str, str | None]:
 
     code = (params.get("code") or [""])[0]
     if not code:
-        raise GatewayBadResponse(
+        raise GatewayCallbackRejected(
             "URL bạn dán không chứa tham số `code`. Hãy sao chép **toàn bộ** URL "
             "trên thanh địa chỉ sau khi đồng ý ở Google.",
             detail="thiếu code trong URL callback",

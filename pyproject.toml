@@ -38,6 +38,11 @@ ignore = [
 # E501: fixture HTML phải sao NGUYÊN VĂN phản hồi thật, cắt dòng là làm sai dữ liệu.
 "tests/**" = ["S105", "S106", "S311", "T201", "E501"]
 "alembic/env.py" = ["E402"]
+# scripts/: công cụ vận hành chạy tay.
+#   T201 — in tiến trình ra stderr là việc chính của một script dài phút.
+#   S603, S607 — `subprocess` gọi bằng DANH SÁCH cố định, không qua shell, và
+#          không có đầu vào từ người dùng; cảnh báo không áp dụng ở đây.
+"scripts/**" = ["T201", "S603", "S607"]
 
 [tool.ruff.format]
 quote-style = "double"

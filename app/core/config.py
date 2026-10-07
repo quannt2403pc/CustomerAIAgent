@@ -76,6 +76,37 @@ class Settings(BaseSettings):
     rapport_message_count: int = Field(default=10, ge=5, le=10)
     max_regenerate_attempts: int = 2
 
+    # --- Facebook Page / Messenger Platform (task.md X.6) -------------------
+    #
+    # Gửi/nhận tự động CHỈ đi qua một Facebook Page, và CHỈ tới người đã chủ
+    # động nhắn Page trước (cửa sổ 24h; ngoài ra dùng tag HUMAN_AGENT 7 ngày).
+    # Không có đường hợp lệ nào DM một profile cá nhân bất kỳ.
+    messenger_enabled: bool = False
+    graph_api_base_url: str = "https://graph.facebook.com"
+    graph_api_version: str = "v21.0"
+    #: App Secret — dùng để kiểm `X-Hub-Signature-256` của webhook. Thiếu nó thì
+    #: **không** xác thực được tin đến là của Facebook → coi như chưa bật.
+    messenger_app_secret: str = ""
+    #: Chuỗi ta tự đặt, Facebook gửi lại ở bước verify webhook.
+    messenger_verify_token: str = ""
+    #: Gửi ngoài cửa sổ 24h cần message tag. `HUMAN_AGENT` cho phép người thật
+    #: trả lời trong 7 ngày — đúng tình huống CSKH.
+    messenger_human_agent_tag: bool = True
+
+    # --- Lịch 20h (APScheduler) --------------------------------------------
+    scheduler_enabled: bool = True
+    # Mốc cron của **job**. KHÔNG phải `trigger_time` trong output: field đó là
+    # hằng số `"20:00"` do đề bài quy định và được `Literal` của Pydantic khoá
+    # lại (app/schemas/output.py), nên hai thứ không thể lệch nhau trong JSON
+    # nộp bài. Hai biến dưới đây chỉ để **kiểm chứng** lịch chạy thật mà không
+    # phải chờ tới 20h (task.md D2.4 DoD) — triển khai thật thì để nguyên 20:00.
+    evening_cron_hour: int = Field(default=20, ge=0, le=23)
+    evening_cron_minute: int = Field(default=0, ge=0, le=59)
+    # Số profile tối đa mỗi lượt 20h. Mỗi hook là 2–6 lượt gọi model (sinh +
+    # judge + sinh lại), nên 50 profile có thể thành 300 lượt gọi trong một phút
+    # → chạm hạn mức nhà cung cấp (task.md I-25). Chặn trần có chủ đích.
+    evening_max_profiles: int = Field(default=20, ge=1, le=200)
+
     @field_validator("log_level")
     @classmethod
     def _upper_log_level(cls, v: str) -> str:

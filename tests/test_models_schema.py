@@ -10,6 +10,8 @@ import pytest
 
 from app.models import Base, OutboxItem, Profile, ProfileEvidence
 
+#: Khoá cứng danh sách bảng. Thêm bảng mà quên cập nhật ở đây là test đỏ — có
+#: chủ đích: lược đồ là hợp đồng với plan.md §5.9, không phải thứ trôi theo code.
 EXPECTED_TABLES = {
     "llm_settings",
     "llm_credentials",
@@ -21,11 +23,24 @@ EXPECTED_TABLES = {
     "outbox",
     "job_runs",
     "audit_log",
+    # Phiên hội thoại nhiều lượt (task.md X.3).
+    "conversations",
+    "conversation_messages",
+    "conversation_suggestions",
 }
 
 
-def test_all_ten_tables_declared() -> None:
+def test_all_tables_declared() -> None:
     assert set(Base.metadata.tables) == EXPECTED_TABLES
+
+
+def test_bang_apscheduler_khong_thuoc_metadata_cua_app() -> None:
+    """`apscheduler_jobs` do APScheduler tự tạo và tự quản (task.md I-48).
+
+    Nếu nó lọt vào metadata thì `alembic revision --autogenerate` sẽ coi nó là
+    bảng của ta — và đã từng sinh ra lệnh **DROP** nó, tức là xoá lịch 20h.
+    """
+    assert "apscheduler_jobs" not in Base.metadata.tables
 
 
 def test_url_key_is_unique() -> None:

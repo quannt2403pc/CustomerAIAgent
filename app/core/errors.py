@@ -102,6 +102,21 @@ class GatewayBadResponse(GatewayError):
     message = "Cổng model trả về nội dung không đọc được."
 
 
+class GatewayCallbackRejected(GatewayBadResponse):
+    """URL callback người dùng dán không dùng được — lỗi **đầu vào**, không phải lỗi cổng.
+
+    Vì sao tách khỏi `GatewayBadResponse` (task.md I-36): nó mang `http_status`
+    502, nghĩa là "cổng phía trên hỏng". Nhưng người dùng dán sai URL thì không
+    có gì hỏng — họ cần sửa thao tác. UI nhận 502 sẽ hiện "hệ thống lỗi, thử lại
+    sau" trong khi câu đúng là "dán lại URL". Kế thừa để mọi chỗ đang bắt
+    `GatewayBadResponse` vẫn bắt được, chỉ `http_status` đổi thành 400.
+    """
+
+    code = "E-LLM-400-CALLBACK"
+    http_status = 400
+    message = "URL callback không dùng được. Hãy sao chép lại toàn bộ URL sau khi đồng ý ở Google."
+
+
 # ---------------------------------------------------------------------------
 # Collector Facebook
 # ---------------------------------------------------------------------------
@@ -163,3 +178,51 @@ class ConflictError(AppError):
     code = "E-APP-409"
     http_status = 409
     message = "Trạng thái hiện tại không cho phép thao tác này."
+
+
+# ---------------------------------------------------------------------------
+# Facebook Page / Messenger (task.md X.6)
+# ---------------------------------------------------------------------------
+class MessengerError(AppError):
+    code = "E-MSG-502"
+    http_status = 502
+    message = "Facebook không nhận tin. Thử lại sau ít phút."
+
+
+class MessengerDisabled(MessengerError):
+    """Chưa kết nối Page → không có đường gửi nào. 409, không phải 502."""
+
+    code = "E-MSG-409-OFF"
+    http_status = 409
+    message = (
+        "Chưa kết nối Facebook Page. Vào Cài đặt → Kết nối Facebook Page "
+        "và làm theo hướng dẫn để bật gửi tự động."
+    )
+
+
+class MessengerNotLinked(MessengerError):
+    """Hội thoại chưa có PSID.
+
+    Không phải lỗi cấu hình mà là **giới hạn của nền tảng**: Messenger chỉ cho
+    gửi tới người đã chủ động nhắn Page trước. Thông điệp phải nói đúng điều
+    đó, nếu không người vận hành sẽ đi sửa cấu hình mãi mà không hiểu vì sao.
+    """
+
+    code = "E-MSG-409-NOLINK"
+    http_status = 409
+    message = (
+        "Người này chưa từng nhắn tin cho Page của bạn, nên Facebook không cho "
+        "gửi tin tới họ. Hãy mời họ nhắn Page trước (gửi link m.me của Page); "
+        "ngay khi họ nhắn, hội thoại sẽ tự liên kết và nút Gửi hoạt động."
+    )
+
+
+class MessengerWindowExpired(MessengerError):
+    """Quá cửa sổ cho phép → Facebook trả mã 10 / subcode 2018278."""
+
+    code = "E-MSG-409-WINDOW"
+    http_status = 409
+    message = (
+        "Đã quá thời hạn Facebook cho phép trả lời người này (7 ngày kể từ tin "
+        "cuối của họ). Phải chờ họ nhắn lại mới gửi được."
+    )

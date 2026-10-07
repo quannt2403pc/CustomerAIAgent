@@ -32,6 +32,7 @@ from app.schemas.output import (
 )
 from app.services.evening_hook import EveningHookResult, generate_evening_hook
 from app.services.profiler import ProfileResult, build_profile
+from app.services.progress import NullProgress, ProgressSink, State, Step
 from app.services.rapport import RapportResult, generate_sequence, style_feedback
 from app.services.validators import (
     GroundingReport,
@@ -198,6 +199,7 @@ async def run_analysis(
     recent_hooks: list[str] | None = None,
     client: httpx.AsyncClient | None = None,
     upload_dir: str | None = None,
+    progress: ProgressSink | None = None,
 ) -> AnalysisOutcome:
     """Thu thập → profile → tin nhắn → hook → strict JSON.
 
@@ -206,6 +208,7 @@ async def run_analysis(
     mới raise (`InvalidFacebookUrl`), vì đó là lỗi của người gọi.
     """
     settings = get_settings()
+    track = progress or NullProgress()
     limiter = HostRateLimiter(settings.collector_min_interval_seconds)
     owns_client = client is None
     client = client or httpx.AsyncClient(
@@ -221,6 +224,7 @@ async def run_analysis(
         )
 
         # --- Thu thập -----------------------------------------------------
+        track.mark(Step.COLLECT, State.RUNNING)
         if target is not None:
             await limiter.wait(target.canonical_url)
             await og_meta.collect(target, bundle, client=client)
@@ -237,6 +241,13 @@ async def run_analysis(
         if profile_text:
             collect_from_text(profile_text, bundle)
 
+        track.mark(
+            Step.COLLECT,
+            State.DONE if bundle.fields else State.SKIPPED,
+            _collect_note(bundle),
+        )
+
+        track.mark(Step.IMAGES, State.RUNNING)
         avatar = await fetch_and_normalize(
             bundle, client=client, limiter=limiter, output_dir=upload_dir
         )
@@ -246,16 +257,29 @@ async def run_analysis(
         public_photos = await fetch_public_photos(
             bundle, client=client, limiter=limiter, output_dir=upload_dir
         )
+        n_images = (1 if avatar else 0) + len(public_photos)
+        track.mark(
+            Step.IMAGES,
+            State.DONE if n_images else State.SKIPPED,
+            f"{n_images} ảnh dùng được" if n_images else "không lấy được ảnh công khai nào",
+        )
 
         # --- Profile ------------------------------------------------------
+        track.mark(Step.PROFILE, State.RUNNING)
         profile = await build_profile(
             bundle, gateway, model=model, avatar=avatar, public_photos=public_photos
         )
         evidence_corpus = bundle.evidence_corpus()
 
+        track.mark(Step.PROFILE, State.DONE, f"status={profile.status}")
+
         # Không có cả tên lẫn mô tả ảnh → mọi tin nhắn sẽ là lời chung chung.
         # Dừng ở đây và nói thật, thay vì sinh nội dung vô căn cứ (luật L1).
         if not profile.is_usable_for_rapport:
+            # Dừng thật thì phải nói là **bỏ qua**, không để ba bước còn lại
+            # treo ở `pending` — UI sẽ trông như đang chạy mãi.
+            for step in (Step.MESSAGES, Step.HOOK, Step.MODERATION):
+                track.mark(step, State.SKIPPED, "không đủ bằng chứng để sinh nội dung")
             return AnalysisOutcome(
                 output=StrictOutput(
                     status=profile.status,
@@ -271,6 +295,7 @@ async def run_analysis(
             )
 
         # --- Chuỗi tin nhắn + kiểm duyệt ----------------------------------
+        track.mark(Step.MESSAGES, State.RUNNING)
         sequence = await generate_validated_sequence(
             profile,
             evidence_corpus,
@@ -280,7 +305,14 @@ async def run_analysis(
             temperature=temperature,
         )
 
+        track.mark(
+            Step.MESSAGES,
+            State.DONE if sequence.passed else State.FAILED,
+            f"{len(sequence.messages)} tin sau {sequence.attempts} lượt",
+        )
+
         # --- Hook 20h -----------------------------------------------------
+        track.mark(Step.HOOK, State.RUNNING)
         hook = await generate_evening_hook(
             profile,
             evidence_corpus,
@@ -291,7 +323,23 @@ async def run_analysis(
             temperature=temperature,
         )
 
+        track.mark(
+            Step.HOOK,
+            State.DONE if hook.passed else State.FAILED,
+            f"{hook.attempts} lượt",
+        )
+
+        track.mark(Step.MODERATION, State.RUNNING)
         status, error_note = _resolve_status(profile, sequence, hook)
+        track.mark(
+            Step.MODERATION,
+            State.DONE if status != STATUS_FAILED_VALIDATION else State.FAILED,
+            # Chỉ nêu **loại** vi phạm — trích nguyên văn câu vi phạm sẽ kéo
+            # nội dung bẩn ra tới UI (task.md I-23).
+            sequence.sales_check
+            if status != STATUS_FAILED_VALIDATION
+            else _violation_summary(sequence),
+        )
 
         output = StrictOutput(
             status=status,
@@ -316,6 +364,13 @@ async def run_analysis(
     finally:
         if owns_client:
             await client.aclose()
+
+
+def _collect_note(bundle: EvidenceBundle) -> str:
+    """Câu ngắn nói **đọc được gì**, để UI không phải tự diễn giải bundle."""
+    if bundle.fields:
+        return f"{len(bundle.fields)} dữ kiện từ {', '.join(bundle.layers_used)}"
+    return bundle.blocked_reason or "không đọc được dữ kiện nào"
 
 
 def _violation_summary(sequence: ValidatedSequence) -> str:

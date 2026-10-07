@@ -23,6 +23,8 @@ nói đúng "đọc được tới đâu" (luật L1).
 
 from __future__ import annotations
 
+import re
+
 import httpx
 from bs4 import BeautifulSoup
 
@@ -120,6 +122,39 @@ async def collect(
             await client.aclose()
 
 
+#: Hai chỗ trong HTML trang profile mang **ID số** của người dùng.
+#:
+#: Dùng hai mẫu chứ không một, và **đòi chúng trùng nhau**: HTML trang Facebook
+#: chứa hàng chục số dài (ID bài đăng, ID ảnh, ID app Android…). Một mẫu đơn lẻ
+#: rất dễ bắt nhầm một trong số đó, và hậu quả là mở **cuộc trò chuyện của
+#: người khác** — sai nghiêm trọng hơn nhiều so với không mở được gì.
+#:
+#: Đo thật trên `facebook.com/vander.374801`: cả hai cho `61575076412503`, và
+#: trùng đúng giá trị mà `m.me/<username>` từng chuyển hướng tới — hai nguồn
+#: độc lập xác nhận lẫn nhau.
+_USER_ID_PATTERNS = (
+    re.compile(r'"userID":"(\d{8,})"'),
+    re.compile(r"fb://profile/(\d{8,})"),
+)
+
+
+def extract_user_id(html: str) -> str | None:
+    """ID số của chủ trang, hoặc `None` nếu hai mẫu không nhất trí.
+
+    `None` là câu trả lời **đúng** khi không chắc: giao diện sẽ mở trang cá
+    nhân để người vận hành tự bấm "Nhắn tin" — chậm một nhịp nhưng không bao
+    giờ mở nhầm người.
+    """
+    found: set[str] = set()
+    for pattern in _USER_ID_PATTERNS:
+        matches = set(pattern.findall(html))
+        if len(matches) != 1:
+            # Không khớp, hoặc khớp nhiều giá trị khác nhau → không dùng được.
+            return None
+        found |= matches
+    return found.pop() if len(found) == 1 else None
+
+
 def parse_into(
     html: str, bundle: EvidenceBundle, *, http_status: int | None = 200
 ) -> EvidenceBundle:
@@ -167,6 +202,20 @@ def parse_into(
 
     if image_url := _meta(soup, "og:image"):
         bundle.add_image(EvidenceImage(role="avatar", url=image_url))
+        found_anything = True
+
+    # ID số của chủ trang. Không phải thông tin để hiển thị cho người vận hành,
+    # mà là thứ **duy nhất** dựng được link mở thẳng khung chat: route
+    # `facebook.com/messages/t/` chỉ nhận ID số, không nhận username (I-58).
+    # Lấy ở đây vì trang này **đã được tải** rồi — không thêm request nào.
+    if user_id := extract_user_id(html):
+        bundle.add_field(
+            "facebook_user_id",
+            user_id,
+            source=SOURCE,
+            evidence=f'"userID":"{user_id}"',
+            confidence=0.95,
+        )
         found_anything = True
 
     bundle.add_attempt(
