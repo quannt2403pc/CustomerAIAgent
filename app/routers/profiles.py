@@ -218,9 +218,7 @@ async def download_output_json(profile_id: uuid.UUID, session: SessionDep) -> Re
     """
     row = await _get_profile_or_404(session, profile_id)
     if not row.last_output:
-        raise NotFoundError(
-            "Profile này chưa có kết quả nào để tải. Hãy chạy phân tích trước."
-        )
+        raise NotFoundError("Profile này chưa có kết quả nào để tải. Hãy chạy phân tích trước.")
 
     # Dựng lại qua Pydantic trước khi phục vụ: nếu dữ liệu đã lưu lệch lược đồ
     # (vd sau một lần đổi schema) thì phải lỗi ở đây, không phải phục vụ ra một
@@ -240,9 +238,7 @@ async def dashboard_stats(session: SessionDep) -> DashboardStatsOut:
     from app.models import OutboxItem
 
     by_status = dict(
-        (
-            await session.execute(select(Profile.status, func.count()).group_by(Profile.status))
-        ).all()
+        (await session.execute(select(Profile.status, func.count()).group_by(Profile.status))).all()
     )
     total = sum(by_status.values())
     readable = by_status.get("SUCCESS", 0) + by_status.get("PARTIAL_OR_PRIVATE", 0)
@@ -288,9 +284,7 @@ async def _latest_run(session: AsyncSession, profile_id: uuid.UUID) -> RapportRu
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
-async def _latest_evidence(
-    session: AsyncSession, profile_id: uuid.UUID
-) -> ProfileEvidence | None:
+async def _latest_evidence(session: AsyncSession, profile_id: uuid.UUID) -> ProfileEvidence | None:
     stmt = (
         select(ProfileEvidence)
         .where(ProfileEvidence.profile_id == profile_id)
@@ -397,4 +391,3 @@ def _as_number(value: object) -> float | None:
     if isinstance(value, bool):
         return None
     return float(value) if isinstance(value, int | float) else None
-

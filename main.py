@@ -26,9 +26,15 @@ import asyncio
 import pathlib
 import sys
 
-# Phải đặt policy TRƯỚC khi event loop đầu tiên được tạo (task.md I-04).
+# Hai lời gọi dưới đây phải chạy TRƯỚC mọi thứ khác, mỗi cái vì một lý do riêng:
+#
+#   - policy event loop: trước khi loop đầu tiên được tạo (task.md I-04)
+#   - UTF-8 cho stdio:   trước lần ghi stdout/stderr đầu tiên (task.md I-61) —
+#     console Windows mặc định cp1252, và `--help` lẫn JSON đầu ra đều nổ
 from app.core.eventloop import ensure_compatible_event_loop_policy
+from app.core.stdio import force_utf8_stdio
 
+force_utf8_stdio()
 ensure_compatible_event_loop_policy()
 
 from app.core.config import ConfigError, get_settings  # noqa: E402

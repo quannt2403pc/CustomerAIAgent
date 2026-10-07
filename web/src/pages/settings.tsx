@@ -8,7 +8,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ApiKeyCard } from '@/features/llm/api-key-card'
 import { useLlmStatus, useSetProvider } from '@/features/llm/hooks'
 import { ModelPicker } from '@/features/llm/model-picker'
+import { CookieCard } from '@/features/conversations/cookie-card'
 import { OAuthCard } from '@/features/llm/oauth-card'
+import { PageCard } from '@/features/messenger/page-card'
 import { errorMessage } from '@/lib/api'
 import type { ProviderName } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -169,6 +171,10 @@ export function SettingsPage() {
             </CardContent>
           </Card>
 
+          <PageCard />
+
+          <CookieCard />
+
           <DangerNote />
         </div>
       ) : null}
@@ -176,12 +182,19 @@ export function SettingsPage() {
   )
 }
 
-/** Nhắc lại giới hạn của hệ thống ngay tại nơi người vận hành cấu hình nó. */
+/**
+ * Nhắc lại giới hạn của hệ thống ngay tại nơi người vận hành cấu hình nó.
+ *
+ * Câu này **đã được sửa** khi luật L3 đổi (task.md X.6). Bản cũ nói "không có
+ * chức năng tự gửi cho bất kỳ ai" — để nguyên thì nó thành một lời nói sai,
+ * đúng ở chỗ nguy hiểm nhất: người vận hành sẽ tin là không có gì đi ra ngoài.
+ */
 function DangerNote() {
   return (
     <p className="text-xs text-muted-foreground">
-      Hệ thống chỉ soạn nháp tin nhắn. Không có chức năng tự gửi cho bất kỳ ai — mọi tin phải do
-      bạn tự gửi tay.
+      Hệ thống chỉ gửi tin cho người đã <strong>chủ động nhắn Page của bạn trước</strong>, và chỉ
+      khi bạn bấm Gửi. Với những người khác, nó chỉ soạn nháp — bạn tự gửi tay. Chuỗi 10 tin ở
+      Outbox <strong>không bao giờ</strong> được gửi tự động.
     </p>
   )
 }

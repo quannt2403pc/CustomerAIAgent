@@ -8,6 +8,8 @@ import { ErrorBoundary } from './components/error-boundary'
 import { ToastProvider } from './components/toast'
 import { createQueryClient } from './lib/query'
 import { AnalyzePage } from './pages/analyze'
+import { ConversationPage } from './pages/conversation'
+import { ConversationsPage } from './pages/conversations'
 import { DashboardPage } from './pages/dashboard'
 import { NotFoundPage } from './pages/not-found'
 import { OutboxPage } from './pages/outbox'
@@ -47,6 +49,8 @@ export function App() {
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/phan-tich" element={<AnalyzePage />} />
                 <Route path="/phan-tich/:profileId" element={<AnalyzePage />} />
+                <Route path="/hoi-thoai" element={<ConversationsPage />} />
+                <Route path="/hoi-thoai/:conversationId" element={<ConversationPage />} />
                 <Route path="/outbox" element={<OutboxPage />} />
                 <Route path="/cai-dat" element={<SettingsPage />} />
                 {/* Đường dẫn cũ/lỗi chính tả → về trang chủ thay vì trang trắng. */}

@@ -121,9 +121,17 @@ function OutboxCard({ item }: { item: OutboxItem }) {
         <CardContent className="flex flex-col gap-3 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
+              {/*
+                `inline-block py-1` không phải để cho đẹp: đo thật bằng
+                Playwright, link này cao **19px** — dưới ngưỡng 24px của WCAG
+                2.5.8. Nó là tiêu đề đứng riêng trong một `div`, nên **không**
+                được hưởng ngoại lệ "liên kết trong câu văn" như các link trong
+                đoạn chữ. Thêm 4px đệm trên/dưới đưa vùng bấm lên 27px mà chữ
+                vẫn y nguyên.
+              */}
               <Link
                 to={`/phan-tich/${item.profile_id}`}
-                className="font-medium text-primary underline-offset-2 hover:underline"
+                className="inline-block py-1 font-medium text-primary underline-offset-2 hover:underline"
               >
                 {item.customer_name ?? 'Không đọc được tên'}
               </Link>
@@ -136,7 +144,9 @@ function OutboxCard({ item }: { item: OutboxItem }) {
           </div>
 
           {item.message ? (
-            <p className="rounded-lg border border-border bg-muted/40 p-3 text-sm">{item.message}</p>
+            <p className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
+              {item.message}
+            </p>
           ) : (
             <p className="text-sm text-muted-foreground">
               Nháp này không còn nội dung (câu mồi đã bị xoá).

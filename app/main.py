@@ -25,7 +25,7 @@ from app.core.http_errors import ErrorNormalizingMiddleware, install_exception_h
 from app.core.logging import get_logger, setup_logging
 from app.core.middleware import SecurityHeadersMiddleware
 from app.db import engine as db_engine
-from app.routers import health, llm, outbox, profiles
+from app.routers import conversations, health, llm, messenger, outbox, profiles
 from app.scheduler import runner as scheduler_runner
 
 log = get_logger(__name__)
@@ -79,6 +79,8 @@ def create_app() -> FastAPI:
     app.include_router(llm.router)
     app.include_router(profiles.router)
     app.include_router(outbox.router)
+    app.include_router(conversations.router)
+    app.include_router(messenger.router)
     return app
 
 

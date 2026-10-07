@@ -269,9 +269,9 @@ def test_bo_canh_gac_l6_khong_rong_nghia() -> None:
     thêm `DEFAULT_MODEL = "gemini-3-flash"` thì test đỏ, bỏ ra thì xanh. Kiểm tay
     không sống qua lần refactor nào — nên nó thành test ở đây.
     """
-    assert find_hardcoded_model_names('DEFAULT_MODEL = "gemini-3-flash"\n'), (
-        "canh gác L6 không bắt được một tên model nhúng thẳng vào code"
-    )
+    assert find_hardcoded_model_names(
+        'DEFAULT_MODEL = "gemini-3-flash"\n'
+    ), "canh gác L6 không bắt được một tên model nhúng thẳng vào code"
     # Và các biến thể dễ lọt.
     assert find_hardcoded_model_names('FALLBACKS = ["claude-3-opus"]\n')
     assert find_hardcoded_model_names('if model == "gpt-4o":\n    pass\n')

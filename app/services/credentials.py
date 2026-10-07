@@ -21,6 +21,11 @@ log = get_logger(__name__)
 
 KIND_GOOGLE_API_KEY = "google_api_key"
 KIND_FB_COOKIE = "fb_cookie"
+#: Page Access Token của Facebook Page (task.md X.6). Secret người dùng dán
+#: trên UI → bắt buộc mã hoá at-rest như mọi secret khác, không vào .env.
+# `noqa: S105` bên dưới: đây là **tên loại** (discriminator) đi vào cột `kind`,
+# không phải giá trị token. Giá trị thật chỉ tồn tại mã hoá trong DB (luật L4).
+KIND_PAGE_ACCESS_TOKEN = "page_access_token"  # noqa: S105
 
 
 @dataclass(frozen=True)

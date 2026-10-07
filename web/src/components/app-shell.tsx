@@ -1,5 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { AlarmClock, BarChart3, Inbox, Search, Settings } from 'lucide-react'
+import {
+  AlarmClock,
+  BarChart3,
+  Inbox,
+  MessagesSquare,
+  Search,
+  Settings,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import * as React from 'react'
@@ -21,6 +28,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: BarChart3 },
   { to: '/phan-tich', label: 'Phân tích', icon: Search },
+  { to: '/hoi-thoai', label: 'Hội thoại', icon: MessagesSquare },
   { to: '/outbox', label: 'Outbox', icon: Inbox },
   { to: '/cai-dat', label: 'Cài đặt', icon: Settings },
 ]

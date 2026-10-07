@@ -76,6 +76,23 @@ class Settings(BaseSettings):
     rapport_message_count: int = Field(default=10, ge=5, le=10)
     max_regenerate_attempts: int = 2
 
+    # --- Facebook Page / Messenger Platform (task.md X.6) -------------------
+    #
+    # Gửi/nhận tự động CHỈ đi qua một Facebook Page, và CHỈ tới người đã chủ
+    # động nhắn Page trước (cửa sổ 24h; ngoài ra dùng tag HUMAN_AGENT 7 ngày).
+    # Không có đường hợp lệ nào DM một profile cá nhân bất kỳ.
+    messenger_enabled: bool = False
+    graph_api_base_url: str = "https://graph.facebook.com"
+    graph_api_version: str = "v21.0"
+    #: App Secret — dùng để kiểm `X-Hub-Signature-256` của webhook. Thiếu nó thì
+    #: **không** xác thực được tin đến là của Facebook → coi như chưa bật.
+    messenger_app_secret: str = ""
+    #: Chuỗi ta tự đặt, Facebook gửi lại ở bước verify webhook.
+    messenger_verify_token: str = ""
+    #: Gửi ngoài cửa sổ 24h cần message tag. `HUMAN_AGENT` cho phép người thật
+    #: trả lời trong 7 ngày — đúng tình huống CSKH.
+    messenger_human_agent_tag: bool = True
+
     # --- Lịch 20h (APScheduler) --------------------------------------------
     scheduler_enabled: bool = True
     # Mốc cron của **job**. KHÔNG phải `trigger_time` trong output: field đó là

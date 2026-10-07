@@ -252,9 +252,7 @@ async def test_goi_lai_cung_url_khong_tao_profile_trung_va_khong_goi_model(
     setup, db_session
 ) -> None:
     client, fake = setup
-    await persistence.save_analysis(
-        db_session, _outcome(), provider="antigravity", model=MODEL
-    )
+    await persistence.save_analysis(db_session, _outcome(), provider="antigravity", model=MODEL)
     await db_session.flush()
 
     resp = client.post("/api/profiles", json={"facebook_url": URL})
@@ -274,9 +272,7 @@ async def test_goi_lai_cung_url_khong_tao_profile_trung_va_khong_goi_model(
 @pytest.mark.asyncio
 async def test_refresh_true_thi_chay_lai(setup, db_session, monkeypatch) -> None:
     client, _ = setup
-    await persistence.save_analysis(
-        db_session, _outcome(), provider="antigravity", model=MODEL
-    )
+    await persistence.save_analysis(db_session, _outcome(), provider="antigravity", model=MODEL)
     await db_session.flush()
 
     monkeypatch.setattr(jobs, "start_analysis_job", lambda jid, **kw: None)
@@ -464,9 +460,7 @@ async def test_danh_sach_phan_trang_va_moi_nhat_truoc(setup, db_session) -> None
         outcome = _outcome()
         outcome.bundle.url_key = f"nguoi-{i}"
         outcome.output.facebook_url = f"{URL}-{i}"
-        await persistence.save_analysis(
-            db_session, outcome, provider="antigravity", model=MODEL
-        )
+        await persistence.save_analysis(db_session, outcome, provider="antigravity", model=MODEL)
     await db_session.flush()
 
     page = client.get("/api/profiles", params={"limit": 2, "offset": 0}).json()
@@ -486,9 +480,7 @@ async def test_thong_ke_dashboard_dem_that(setup, db_session) -> None:
     for i, status in enumerate(["SUCCESS", "PARTIAL_OR_PRIVATE", "FAILED_VALIDATION"]):
         outcome = _outcome(status=status)
         outcome.bundle.url_key = f"nguoi-tk-{i}"
-        await persistence.save_analysis(
-            db_session, outcome, provider="antigravity", model=MODEL
-        )
+        await persistence.save_analysis(db_session, outcome, provider="antigravity", model=MODEL)
     await db_session.flush()
 
     body = client.get("/api/stats").json()
@@ -517,9 +509,7 @@ def test_job_khong_ton_tai_tra_404(client) -> None:
 @pytest.mark.asyncio
 async def test_job_dang_chay_co_ok_bang_null(setup, db_session) -> None:
     client, _ = setup
-    job = await jobs.create_job_row(
-        db_session, job_name=jobs.JOB_ANALYZE, summary={"url_key": "x"}
-    )
+    job = await jobs.create_job_row(db_session, job_name=jobs.JOB_ANALYZE, summary={"url_key": "x"})
     await db_session.flush()
 
     body = client.get(f"/api/jobs/{job.id}").json()
@@ -531,9 +521,7 @@ async def test_job_dang_chay_co_ok_bang_null(setup, db_session) -> None:
 @pytest.mark.asyncio
 async def test_tien_trinh_duoc_ghi_vao_job_runs_doc_lai_duoc_qua_api(setup, db_session) -> None:
     client, _ = setup
-    job = await jobs.create_job_row(
-        db_session, job_name=jobs.JOB_ANALYZE, summary={"url_key": "x"}
-    )
+    job = await jobs.create_job_row(db_session, job_name=jobs.JOB_ANALYZE, summary={"url_key": "x"})
     await db_session.flush()
 
     from app.services.progress import ProgressTracker, State

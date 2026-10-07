@@ -20,6 +20,7 @@ import time
 
 from fastapi import APIRouter, Depends, Query
 
+from app.collectors import facebook_cookie
 from app.core.errors import GatewayError, GatewayModelInvalid, GatewayNotConfigured
 from app.core.logging import get_logger
 from app.core.ratelimit import llm_test_rate_limit
@@ -31,6 +32,7 @@ from app.llm.resolver import get_active_config, set_model, set_provider
 from app.routers.deps import SessionDep, gateway_scope
 from app.schemas.api import (
     ActionResultOut,
+    CookieStatusOut,
     CredentialOut,
     GatewayTestOut,
     LlmStatusOut,
@@ -40,6 +42,7 @@ from app.schemas.api import (
     OAuthStartOut,
     OAuthStatusOut,
     SaveApiKeyRequest,
+    SaveCookieRequest,
     SetModelRequest,
     SetProviderRequest,
 )
@@ -287,6 +290,74 @@ async def delete_api_key(session: SessionDep) -> ActionResultOut:
         await audit.record(session, "llm.delete_api_key", target="google_api_key")
     return ActionResultOut(
         message="Đã xoá API key." if deleted else "Chưa có API key nào được lưu."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Cookie Facebook của chính người vận hành (task.md X.2)
+# ---------------------------------------------------------------------------
+#
+# Vì sao cần: đo thật (task.md I-31, I-33) cho thấy Facebook **che caption và
+# nội dung bài viết** với khách chưa đăng nhập — kể cả bài để chế độ Công khai.
+# Không có cookie thì pipeline chỉ lấy được tên + ảnh.
+#
+# Vì sao nguy hiểm: cookie cho hệ thống đọc Facebook **dưới danh nghĩa tài khoản
+# của người dùng**. Cảnh báo phải hiện **trước** khi họ dán, không phải sau.
+@router.get("/fb-cookie", response_model=CookieStatusOut)
+async def get_fb_cookie(session: SessionDep) -> CookieStatusOut:
+    """Trạng thái cookie — **không** trả giá trị, chỉ mô tả."""
+    info = await credentials.describe(session, credentials.KIND_FB_COOKIE)
+    if not info.is_set:
+        return CookieStatusOut(is_set=False, risk_warning=facebook_cookie.RISK_WARNING)
+
+    raw = await credentials.get_secret(session, credentials.KIND_FB_COOKIE)
+    parsed = facebook_cookie.validate(raw or "")
+    return CookieStatusOut(
+        is_set=True,
+        masked_account=parsed.masked_account,
+        names=list(parsed.names),
+        created_at=info.created_at,
+        risk_warning=facebook_cookie.RISK_WARNING,
+    )
+
+
+@router.put("/fb-cookie", response_model=CookieStatusOut)
+async def put_fb_cookie(body: SaveCookieRequest, session: SessionDep) -> CookieStatusOut:
+    """Kiểm hình dạng **rồi** ping Facebook, sau đó mới mã hoá và lưu.
+
+    Thứ tự này quan trọng: lưu một cookie đã hết hạn rồi để pipeline chạy 70 giây
+    và thất bại là kiểu lỗi tệ nhất — nó xảy ra khi không ai nhìn.
+    """
+    # Raise `CollectorError` (400) nêu rõ thiếu cookie nào nếu hình dạng sai.
+    parsed = facebook_cookie.validate(body.cookie)
+    normalised = facebook_cookie.to_header(body.cookie)
+    alive = await facebook_cookie.check_alive(normalised)
+
+    info = await credentials.save_secret(session, credentials.KIND_FB_COOKIE, normalised)
+    # Log **tên** cookie, không bao giờ giá trị.
+    await audit.record(session, "collector.save_fb_cookie", target=parsed.masked_account)
+
+    return CookieStatusOut(
+        is_set=True,
+        masked_account=parsed.masked_account,
+        names=list(parsed.names),
+        created_at=info.created_at,
+        risk_warning=facebook_cookie.RISK_WARNING,
+        alive=alive,
+    )
+
+
+@router.delete("/fb-cookie", response_model=ActionResultOut)
+async def delete_fb_cookie(session: SessionDep) -> ActionResultOut:
+    deleted = await credentials.delete_secret(session, credentials.KIND_FB_COOKIE)
+    if deleted:
+        await audit.record(session, "collector.delete_fb_cookie")
+    return ActionResultOut(
+        message=(
+            "Đã xoá cookie Facebook. Từ giờ hệ thống chỉ đọc được dữ liệu công khai."
+            if deleted
+            else "Chưa có cookie nào được lưu."
+        )
     )
 
 

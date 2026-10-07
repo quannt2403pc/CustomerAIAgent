@@ -241,7 +241,9 @@ def test_key_sai_khong_duoc_ghi_vao_db_va_khong_bi_echo(client) -> None:
     respx.get(f"{GOOGLE}/v1beta/models").mock(
         return_value=httpx.Response(
             400,
-            json={"error": {"code": 400, "message": "API key not valid. Please pass a valid API key."}},
+            json={
+                "error": {"code": 400, "message": "API key not valid. Please pass a valid API key."}
+            },
         )
     )
 
@@ -446,7 +448,12 @@ def test_test_bi_rate_limit_sau_khi_vuot_han_muc(client) -> None:
 def test_luong_oauth_di_het_start_wait_ok(client) -> None:
     respx.get(f"{MGMT}/antigravity-auth-url").mock(
         return_value=httpx.Response(
-            200, json={"status": "ok", "url": "https://accounts.google.com/o/oauth2/auth?x=1", "state": "st-123"}
+            200,
+            json={
+                "status": "ok",
+                "url": "https://accounts.google.com/o/oauth2/auth?x=1",
+                "state": "st-123",
+            },
         )
     )
     start = client.post("/api/llm/oauth/start")
@@ -454,12 +461,16 @@ def test_luong_oauth_di_het_start_wait_ok(client) -> None:
     assert start.json()["state"] == "st-123"
     assert start.json()["url"].startswith("https://accounts.google.com/")
 
-    respx.get(f"{MGMT}/get-auth-status").mock(return_value=httpx.Response(200, json={"status": "wait"}))
+    respx.get(f"{MGMT}/get-auth-status").mock(
+        return_value=httpx.Response(200, json={"status": "wait"})
+    )
     waiting = client.get("/api/llm/oauth/status", params={"state": "st-123"})
     assert waiting.json()["status"] == "wait"
     assert waiting.json()["connected"] is False
 
-    respx.get(f"{MGMT}/get-auth-status").mock(return_value=httpx.Response(200, json={"status": "ok"}))
+    respx.get(f"{MGMT}/get-auth-status").mock(
+        return_value=httpx.Response(200, json={"status": "ok"})
+    )
     respx.get(f"{MGMT}/auth-files").mock(
         return_value=httpx.Response(
             200, json={"files": [{"name": "antigravity-nguoi@example.com.json"}]}
@@ -483,7 +494,9 @@ def test_oauth_status_bat_buoc_co_state(client) -> None:
 def test_oauth_status_loi_bao_bang_http_200_van_bi_bat(client) -> None:
     """Bẫy B7: `{"status":"error"}` kèm HTTP 200. Đọc theo status code sẽ tưởng xong."""
     respx.get(f"{MGMT}/get-auth-status").mock(
-        return_value=httpx.Response(200, json={"status": "error", "error": "Failed to exchange token"})
+        return_value=httpx.Response(
+            200, json={"status": "error", "error": "Failed to exchange token"}
+        )
     )
     body = client.get("/api/llm/oauth/status", params={"state": "st-1"}).json()
     assert body["status"] == "error"
@@ -536,9 +549,7 @@ def test_huy_phien_oauth(client) -> None:
 def test_ngat_ket_noi_xoa_tung_auth_file(client) -> None:
     """Bẫy B10: không có chế độ "xoá tất cả"; phải lấy danh sách rồi xoá từng file."""
     respx.get(f"{MGMT}/auth-files").mock(
-        return_value=httpx.Response(
-            200, json={"files": [{"name": "a.json"}, {"name": "b.json"}]}
-        )
+        return_value=httpx.Response(200, json={"files": [{"name": "a.json"}, {"name": "b.json"}]})
     )
     deleted = respx.delete(f"{MGMT}/auth-files").mock(return_value=httpx.Response(200, json={}))
 

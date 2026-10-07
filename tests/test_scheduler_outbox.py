@@ -1,8 +1,9 @@
 """D2.4 — lịch 20h (APScheduler + jobstore Postgres) + outbox + API outbox.
 
-Test quan trọng nhất của file này là `test_khong_co_duong_gui_tin_nhan_nao` —
-nó canh gác **luật thép L3** bằng grep toàn repo. Mọi test khác chỉ chứng minh
-tính năng; test đó chứng minh ta **không** làm điều đã cam kết không làm.
+Test quan trọng nhất của file này là
+`test_khong_co_duong_gui_tin_nao_ngoai_module_duy_nhat` — nó canh gác **luật
+thép L3** bằng grep toàn repo. Mọi test khác chỉ chứng minh tính năng; test đó
+chứng minh ta **không** làm điều đã cam kết không làm.
 """
 
 from __future__ import annotations
@@ -24,34 +25,46 @@ from app.routers.deps import get_db_session
 from app.scheduler import evening, runner
 from app.services.evening_hook import EveningHookResult
 from app.services.validators import ZeroSalesReport
-from tests.source_guards import find_in_code, scan_files
+from tests.source_guards import SEND_API_PATTERN, find_in_code, send_path_offenders
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 
-# Mẫu đúng như DoD D2.4 nêu.
-SEND_PATTERN = re.compile(
-    r"send_message|messenger|graph\.facebook\.com/[^\s\"']*/messages",
-    re.IGNORECASE,
-)
+# Mẫu dùng chung ở `tests/source_guards.py`. DoD D2.4 nêu `send_message|
+# messenger|graph.facebook.com/.../messages`; bản dùng chung nhắm **hành vi tự
+# dựng đường gửi** thay vì chữ "messenger" trần — vì X.4 thêm hàm dựng link
+# `m.me` (chỉ MỞ khung chat) và X.6 thêm một đường gửi hợp lệ, khoanh trong
+# `app/messenger/`. Phần chữ "messenger" canh riêng bằng danh sách điểm danh,
+# xem `test_conversation.py`.
+SEND_PATTERN = SEND_API_PATTERN
 
 
 # ---------------------------------------------------------------------------
 # Luật thép L3 — canh gác bằng grep toàn repo
 # ---------------------------------------------------------------------------
-def test_khong_co_duong_gui_tin_nhan_nao() -> None:
-    """Luật L3: hệ thống **chỉ soạn nháp**, không có đường gửi cho người thật.
+def test_khong_co_duong_gui_tin_nao_ngoai_module_duy_nhat() -> None:
+    """Luật L3 — **bản đã sửa** (task.md X.6, người dùng quyết).
 
-    Grep theo đúng mẫu DoD D2.4 nêu. Quét `app/`, `main.py`, `run.py` — tức là
-    mọi thứ chạy trong production. `tests/` được loại vì chính file này phải
-    chứa các mẫu đó để tìm chúng.
+    Trước: "không có đường gửi nào cả". Nay: "đường gửi tồn tại, nhưng **chỉ**
+    trong `app/messenger/`, và chỉ tới người đã chủ động nhắn Page trước".
+
+    Vì sao test này không bị xoá khi luật đổi: phần nguy hiểm không phải *việc
+    gửi*, mà là **số lối gửi**. Một lối thì kiểm được điều kiện đồng ý ở đó; hai
+    lối thì lối thứ hai gần như chắc chắn không kiểm. Nên grep vẫn giữ, chỉ đổi
+    từ "không nơi nào" thành "không nơi nào NGOÀI chỗ đã định".
+
+    DoD D2.4 nêu mẫu `send_message|messenger|graph.facebook.com/.../messages`;
+    phần chữ "messenger" trần được canh riêng bằng danh sách điểm danh trong
+    `test_conversation.py`.
     """
     targets = [
         *sorted((REPO_ROOT / "app").rglob("*.py")),
         REPO_ROOT / "main.py",
         REPO_ROOT / "run.py",
     ]
-    offenders = scan_files(targets, SEND_PATTERN, root=REPO_ROOT)
-    assert not offenders, "Có đường gửi tin nhắn — vi phạm luật L3:\n" + "\n".join(offenders)
+    offenders = send_path_offenders(targets, root=REPO_ROOT)
+    assert not offenders, "Đường gửi tin NGOÀI app/messenger/ — vi phạm L3:\n" + "\n".join(
+        offenders
+    )
 
 
 def test_bo_canh_gac_l3_khong_rong_nghia() -> None:
@@ -60,12 +73,8 @@ def test_bo_canh_gac_l3_khong_rong_nghia() -> None:
     Chạy bản quét **thật** (`find_in_code`) trên source giả, chứ không chỉ thử
     regex: phần dễ sai nằm ở chỗ bỏ qua comment/docstring, không ở regex.
     """
-    assert find_in_code(
-        "await client.send_message(recipient_id, text)\n", SEND_PATTERN
-    )
-    assert find_in_code(
-        'URL = "https://graph.facebook.com/v19.0/me/messages"\n', SEND_PATTERN
-    )
+    assert find_in_code("await client.send_message(recipient_id, text)\n", SEND_PATTERN)
+    assert find_in_code('URL = "https://graph.facebook.com/v19.0/me/messages"\n', SEND_PATTERN)
     assert find_in_code("from fbmessenger import MessengerClient\n", SEND_PATTERN)
 
     # Không bắt oan từ ngữ bình thường…
@@ -91,12 +100,29 @@ def test_outbox_khong_co_trang_thai_nao_nghia_la_he_thong_da_gui() -> None:
     assert "delivered" not in OUTBOX_STATUSES
 
 
-def test_endpoint_outbox_khong_co_route_nao_ten_send() -> None:
+def test_chi_hoi_thoai_co_route_send_outbox_thi_khong() -> None:
+    """Chuỗi 10 tin (`outbox`) **vẫn** chỉ là nháp — không route gửi nào.
+
+    Đây là phân biệt quan trọng sau khi L3 đổi. Hai thứ khác nhau hẳn:
+
+    - `outbox` = chuỗi 10 tin sinh sẵn cho người **chưa hề** liên lạc. Gửi tự
+      động chỗ này đúng là nhắn hàng loạt cho người chưa đồng ý → cấm, và cấm
+      bằng việc **không có route**.
+    - `conversations` = cuộc trò chuyện đang diễn ra với người **đã nhắn Page
+      trước**. Có đúng một route gửi, và nó kiểm `psid`.
+
+    Gộp hai thứ lại là cách dễ nhất để vô tình biến tính năng này thành spam.
+    """
     app = create_app()
     paths = [r.path for r in app.routes if hasattr(r, "methods")]
-    assert not [p for p in paths if re.search(r"/send\b", p)], (
-        "một route tên `send` là lời mời hiện thực việc gửi (luật L3)"
+    send_routes = [p for p in paths if re.search(r"/send\b", p)]
+
+    assert send_routes == ["/api/conversations/{conversation_id}/send"], (
+        "Chỉ hội thoại được có route gửi, và đúng một cái. Thấy: " + repr(send_routes)
     )
+    assert not [
+        p for p in send_routes if "outbox" in p
+    ], "Route gửi trong outbox = gửi hàng loạt cho người chưa đồng ý (luật L3)"
     assert "/api/outbox/{item_id}/mark-sent" in paths
 
 
@@ -309,8 +335,12 @@ async def test_hook_bi_kiem_duyet_loai_thi_khong_day_gi_vao_outbox(
 
     assert summary.rejected_by_validators == 1
     assert summary.drafted == 0
-    assert (await db_session.execute(select(func.count()).select_from(OutboxItem))).scalar_one() == 0
-    assert (await db_session.execute(select(func.count()).select_from(EveningHook))).scalar_one() == 0
+    assert (
+        await db_session.execute(select(func.count()).select_from(OutboxItem))
+    ).scalar_one() == 0
+    assert (
+        await db_session.execute(select(func.count()).select_from(EveningHook))
+    ).scalar_one() == 0
 
     # Và `details` chỉ nêu số lượt, không trích nguyên văn câu vi phạm (I-23).
     detail = summary.details[0]
@@ -331,22 +361,34 @@ async def test_chay_hai_lan_cung_toi_khong_tao_nhap_trung(db_session, profile, m
 
     first = evening.EveningRunSummary()
     await evening._draft_for_profile(
-        db_session, profile, gateway=object(), model="m", temperature=0.9,
-        moment=moment, summary=first,
+        db_session,
+        profile,
+        gateway=object(),
+        model="m",
+        temperature=0.9,
+        moment=moment,
+        summary=first,
     )
     await db_session.flush()
 
     second = evening.EveningRunSummary()
     await evening._draft_for_profile(
-        db_session, profile, gateway=object(), model="m", temperature=0.9,
-        moment=moment, summary=second,
+        db_session,
+        profile,
+        gateway=object(),
+        model="m",
+        temperature=0.9,
+        moment=moment,
+        summary=second,
     )
     await db_session.flush()
 
     assert first.drafted == 1
     assert second.drafted == 0
     assert second.skipped_existing == 1
-    assert (await db_session.execute(select(func.count()).select_from(OutboxItem))).scalar_one() == 1
+    assert (
+        await db_session.execute(select(func.count()).select_from(OutboxItem))
+    ).scalar_one() == 1
 
 
 @pytest.mark.asyncio
@@ -361,16 +403,26 @@ async def test_bam_tay_luc_21h_van_tinh_la_cung_mot_toi(db_session, profile, mon
 
     summary = evening.EveningRunSummary()
     await evening._draft_for_profile(
-        db_session, profile, gateway=object(), model="m", temperature=0.9,
-        moment=moment, summary=summary,
+        db_session,
+        profile,
+        gateway=object(),
+        model="m",
+        temperature=0.9,
+        moment=moment,
+        summary=summary,
     )
     await db_session.flush()
 
     later_same_day = moment + timedelta(hours=1)
     again = evening.EveningRunSummary()
     await evening._draft_for_profile(
-        db_session, profile, gateway=object(), model="m", temperature=0.9,
-        moment=later_same_day, summary=again,
+        db_session,
+        profile,
+        gateway=object(),
+        model="m",
+        temperature=0.9,
+        moment=later_same_day,
+        summary=again,
     )
     await db_session.flush()
     assert again.skipped_existing == 1
@@ -379,8 +431,13 @@ async def test_bam_tay_luc_21h_van_tinh_la_cung_mot_toi(db_session, profile, mon
     tomorrow = moment + timedelta(days=1)
     next_day = evening.EveningRunSummary()
     await evening._draft_for_profile(
-        db_session, profile, gateway=object(), model="m", temperature=0.9,
-        moment=tomorrow, summary=next_day,
+        db_session,
+        profile,
+        gateway=object(),
+        model="m",
+        temperature=0.9,
+        moment=tomorrow,
+        summary=next_day,
     )
     await db_session.flush()
     assert next_day.drafted == 1
@@ -551,11 +608,7 @@ def test_mark_sent_doi_trang_thai_va_ghi_moc_thoi_gian(client, draft) -> None:
     assert resp.status_code == 200
     assert "tự gửi tay" in resp.json()["message"]
 
-    item = next(
-        i
-        for i in client.get("/api/outbox").json()["items"]
-        if i["id"] == str(draft.id)
-    )
+    item = next(i for i in client.get("/api/outbox").json()["items"] if i["id"] == str(draft.id))
     assert item["status"] == "sent_manually"
     assert item["acted_at"] is not None
 
@@ -570,9 +623,7 @@ def test_mark_sent_hai_lan_tra_409_khong_ghi_de_moc_thoi_gian(client, draft) -> 
 
 def test_discard_bo_nhap(client, draft) -> None:
     assert client.post(f"/api/outbox/{draft.id}/discard").status_code == 200
-    item = next(
-        i for i in client.get("/api/outbox").json()["items"] if i["id"] == str(draft.id)
-    )
+    item = next(i for i in client.get("/api/outbox").json()["items"] if i["id"] == str(draft.id))
     assert item["status"] == "discarded"
 
 

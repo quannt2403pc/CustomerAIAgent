@@ -241,3 +241,109 @@ export interface Health {
   dry_run: boolean
   scheduler: SchedulerStatus
 }
+
+// ---------------------------------------------------------------------------
+// Cookie Facebook của chính người vận hành (task.md X.2)
+// ---------------------------------------------------------------------------
+export interface CookieStatus {
+  is_set: boolean
+  /** `100012345678901` → `••••8901`. Không bao giờ là giá trị cookie thật. */
+  masked_account: string
+  names: string[]
+  created_at: string | null
+  risk_warning: string
+  /** `null` = chưa kiểm. */
+  alive: boolean | null
+}
+
+// ---------------------------------------------------------------------------
+// Hội thoại nhiều lượt (task.md X.3 / X.4 / X.6)
+// ---------------------------------------------------------------------------
+export type MessageRole = 'operator' | 'customer'
+
+export interface ConversationMessage {
+  id: string
+  seq: number
+  role: MessageRole | string
+  text: string
+  created_at: string
+}
+
+export interface Suggestion {
+  id: string
+  round: number
+  seq: number
+  text: string
+  chosen: boolean
+}
+
+export interface Conversation {
+  id: string
+  /**
+   * `null` khi hội thoại sinh từ webhook Messenger — người đó nhắn Page trước
+   * khi được phân tích, nên chưa có profile nào để trỏ tới.
+   */
+  profile_id: string | null
+  customer_name: string | null
+  facebook_url: string | null
+  status: string
+  created_at: string
+  closed_at: string | null
+  messages: ConversationMessage[]
+  suggestions: Suggestion[]
+  suggestion_round: number
+  /**
+   * Page-Scoped ID. Chỉ có khi người này đã **chủ động nhắn Page** — nên nó vừa
+   * là địa chỉ gửi, vừa là bằng chứng họ đồng ý nhận tin.
+   */
+  psid: string | null
+  /**
+   * `true` = gửi tự động được (có `psid` + đã kết nối Page).
+   *
+   * Dùng cờ này để chọn giữa nút "Gửi" **thật** và đường thủ công, thay vì tự
+   * suy từ `psid` ở phía FE — backend là nơi duy nhất biết đủ điều kiện.
+   */
+  can_send: boolean
+  /**
+   * Link **trang cá nhân** — đích duy nhất dùng được cho đường thủ công.
+   *
+   * Không có `messenger_url`: Facebook không còn URL điều hướng được tới chat
+   * cá nhân. Bấm "Nhắn tin" trên trang profile mở khung chat **ngay trong
+   * trang**, URL không đổi (task.md I-60, đo thật trên phiên đã đăng nhập).
+   */
+  profile_url: string | null
+  /** Câu giải thích khi lượt gợi ý vừa rồi không có câu nào sạch. */
+  suggestion_note: string
+}
+
+export interface ConversationSummary {
+  id: string
+  profile_id: string | null
+  customer_name: string | null
+  status: string
+  created_at: string
+  message_count: number
+  last_message_at: string | null
+}
+
+export interface ConversationList {
+  items: ConversationSummary[]
+  total: number
+}
+
+// ---------------------------------------------------------------------------
+// Kết nối Facebook Page — gửi/nhận tự động (task.md X.6)
+// ---------------------------------------------------------------------------
+export interface PageStatus {
+  is_set: boolean
+  /** Vài ký tự đầu/cuối của token. **Không bao giờ** là giá trị thật (luật L4). */
+  hint: string
+  /** Tên Page lấy thật từ Graph API. `null` = Facebook không nhận token. */
+  page_name: string | null
+  /** Đã đủ `MESSENGER_APP_SECRET` + `MESSENGER_VERIFY_TOKEN` để nhận webhook. */
+  webhook_ready: boolean
+  /** Đường người dùng phải dán vào Meta for Developers. */
+  webhook_url: string
+  /** Lý do **cụ thể** vì sao chưa dùng được; rỗng nghĩa là đã sẵn sàng. */
+  blocker: string
+}

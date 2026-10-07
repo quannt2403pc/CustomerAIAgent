@@ -1,12 +1,24 @@
 import { useMutation } from '@tanstack/react-query'
-import { AlertTriangle, Copy, Download, FileSearch, ImageOff, MessageSquare, Moon } from 'lucide-react'
+import {
+  AlertTriangle,
+  Copy,
+  Download,
+  FileSearch,
+  ImageOff,
+  MessageSquare,
+  MessagesSquare,
+  Moon,
+} from 'lucide-react'
 import * as React from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import { useToast } from '@/components/toast-context'
 import { Badge, ProfileStatusBadge, SalesCheckBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { EvidenceField, ProfileDetail } from '@/lib/types'
+import { useStartConversation } from '@/features/conversations/hooks'
+import { errorMessage } from '@/lib/api'
 import { formatDateTime } from '@/lib/utils'
 
 /** Nhãn tiếng Việt cho nguồn evidence — trụ truy vết của luật L1. */
@@ -66,6 +78,7 @@ function SummaryCard({ profile }: { profile: ProfileDetail }) {
               <SalesCheckBadge value={profile.sales_mention_check} />
             ) : null}
             {profile.has_stored_output ? <DownloadJsonButton profileId={profile.id} /> : null}
+            <StartConversationButton profileId={profile.id} />
           </div>
         </div>
         <p className="break-all text-sm text-muted-foreground">
@@ -378,5 +391,38 @@ function EvidenceRow({ field }: { field: EvidenceField }) {
         </p>
       ) : null}
     </li>
+  )
+}
+
+/**
+ * "Bắt đầu phiên làm việc" — lối vào vòng trò chuyện nhiều lượt (task.md X.3).
+ *
+ * Khác hẳn chuỗi 10 tin bên dưới: chuỗi đó sinh một lần rồi thôi. Phiên trò
+ * chuyện đọc được phản hồi của khách và gợi ý lại theo từng lượt.
+ *
+ * Bấm xong **điều hướng ngay** sang phiên vừa tạo. Lượt gợi ý đầu đã được sinh
+ * trong cùng request, nên để người dùng ở lại trang này là để họ nhìn một màn
+ * hình không thay đổi gì trong khi việc đã xong ở nơi khác.
+ */
+function StartConversationButton({ profileId }: { profileId: string }) {
+  const toast = useToast()
+  const navigate = useNavigate()
+  const start = useStartConversation()
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      loading={start.isPending}
+      onClick={() =>
+        start.mutate(profileId, {
+          onSuccess: (conversation) => navigate(`/hoi-thoai/${conversation.id}`),
+          onError: (error) => toast.error(errorMessage(error)),
+        })
+      }
+    >
+      <MessagesSquare aria-hidden="true" />
+      Bắt đầu phiên làm việc
+    </Button>
   )
 }

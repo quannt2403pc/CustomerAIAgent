@@ -306,3 +306,161 @@ class DashboardStatsOut(_Api):
     readable_rate: float | None = None
     hooks_waiting: int = 0
     messages_total: int = 0
+
+
+# ---------------------------------------------------------------------------
+# Hội thoại nhiều lượt (task.md X.3 / X.4)
+# ---------------------------------------------------------------------------
+class StartConversationRequest(_Api):
+    profile_id: str
+
+
+class SendMessageRequest(_Api):
+    """Gửi **thật** một tin qua Facebook Page (task.md X.6).
+
+    Khác `RecordSentRequest` ở chỗ: cái kia ghi lại việc đã xảy ra bên ngoài,
+    cái này thật sự gọi Send API. Chỉ chạy được khi hội thoại có `psid`, tức
+    người nhận đã chủ động nhắn Page trước.
+    """
+
+    text: str = Field(min_length=1, max_length=2000)
+    #: Gợi ý nào đã được chọn (nếu có). Để trống nghĩa là người vận hành tự viết.
+    suggestion_id: str | None = None
+
+
+class PageStatusOut(_Api):
+    """Trạng thái kết nối Facebook Page — **không** bao giờ chứa token."""
+
+    is_set: bool = False
+    #: Vài ký tự đầu/cuối của token, đủ để người dùng nhận ra mình dán đúng cái
+    #: nào mà không lộ giá trị (luật L4).
+    hint: str = ""
+    #: Tên Page lấy thật từ Graph API. `None` = chưa xác thực được.
+    page_name: str | None = None
+    #: Đã đủ điều kiện nhận webhook chưa (cần cả App Secret + Verify Token).
+    webhook_ready: bool = False
+    #: Đường người dùng phải dán vào Meta for Developers.
+    webhook_url: str = ""
+    #: Lý do **cụ thể** vì sao chưa dùng được, rỗng nếu đã sẵn sàng.
+    blocker: str = ""
+
+
+class SavePageTokenRequest(_Api):
+    token: str = Field(min_length=20, max_length=500)
+
+
+class RecordSentRequest(_Api):
+    """Ghi lại một tin **người vận hành đã tự gửi** ở Messenger.
+
+    Đường **thủ công**, giữ lại cho trường hợp chưa kết nối Page. Tên `sent` mô
+    tả *việc đã xảy ra*, không phải mệnh lệnh gửi. Muốn gửi thật thì dùng
+    `SendMessageRequest`.
+    """
+
+    text: str = Field(min_length=1, max_length=2000)
+    #: Gợi ý nào đã được chọn (nếu có). Để trống nghĩa là người vận hành tự viết.
+    suggestion_id: str | None = None
+
+
+class RecordReplyRequest(_Api):
+    """Dán phản hồi của khách vào.
+
+    Không có webhook vì không có Facebook Page (xem task.md X.4): đường duy nhất
+    để phản hồi vào hệ thống là người vận hành chép lại.
+    """
+
+    text: str = Field(min_length=1, max_length=4000)
+
+
+class ConversationMessageOut(_Api):
+    id: str
+    seq: int
+    role: str  # "operator" | "customer"
+    text: str
+    created_at: datetime
+
+
+class SuggestionOut(_Api):
+    id: str
+    round: int
+    seq: int
+    text: str
+    chosen: bool
+
+
+class ConversationOut(_Api):
+    """Một phiên hội thoại + lịch sử + gợi ý của lượt mới nhất."""
+
+    id: str
+    #: `None` khi hội thoại sinh từ webhook — người đó nhắn Page trước khi được
+    #: phân tích, nên chưa có profile nào để trỏ tới.
+    profile_id: str | None = None
+    customer_name: str | None = None
+    facebook_url: str | None = None
+    status: str
+    created_at: datetime
+    closed_at: datetime | None = None
+
+    messages: list[ConversationMessageOut] = Field(default_factory=list)
+    suggestions: list[SuggestionOut] = Field(default_factory=list)
+    suggestion_round: int = 0
+
+    #: Link **trang cá nhân** — đích duy nhất dùng được cho đường thủ công.
+    #: Người vận hành bấm "Nhắn tin" ở đó để mở khung chat.
+    #:
+    #: Không có `messenger_url`: Facebook không còn URL điều hướng được tới
+    #: chat cá nhân — cả ba dạng đã thử đều hỏng (task.md I-60).
+    profile_url: str | None = None
+
+    #: Page-Scoped ID. Chỉ có khi người này đã **chủ động nhắn Page** — nên nó
+    #: vừa là địa chỉ gửi, vừa là bằng chứng đồng ý (task.md X.6).
+    psid: str | None = None
+    #: `True` = gửi tự động được. FE dùng cờ này để chọn giữa nút "Gửi" thật và
+    #: đường thủ công, thay vì tự đoán từ việc `psid` có rỗng hay không.
+    can_send: bool = False
+
+    #: Câu giải thích khi lượt gợi ý vừa rồi **không có câu nào sạch**.
+    suggestion_note: str = ""
+
+
+class ConversationSummaryOut(_Api):
+    id: str
+    profile_id: str | None = None
+    customer_name: str | None = None
+    status: str
+    created_at: datetime
+    message_count: int = 0
+    last_message_at: datetime | None = None
+
+
+class ConversationListOut(_Api):
+    items: list[ConversationSummaryOut] = Field(default_factory=list)
+    total: int = 0
+
+
+# ---------------------------------------------------------------------------
+# Cookie Facebook của chính người vận hành (task.md X.2)
+# ---------------------------------------------------------------------------
+class SaveCookieRequest(_Api):
+    """Cookie của **chính bạn**, dán từ DevTools.
+
+    Lưu Fernet trước khi ghi DB; không bao giờ trả lại qua API, không vào log
+    (plan.md §5.2, §7.2).
+    """
+
+    cookie: str = Field(min_length=10, max_length=8000)
+
+
+class CookieStatusOut(_Api):
+    """Mô tả an toàn — **không** chứa giá trị cookie."""
+
+    is_set: bool
+    #: `100012345678901` → `••••8901`: đủ nhận ra, không đủ dùng lại.
+    masked_account: str = ""
+    #: Tên các cookie đã nhận (`c_user`, `xs`, …) — giá trị thì không.
+    names: list[str] = Field(default_factory=list)
+    created_at: datetime | None = None
+    #: Cảnh báo rủi ro, hiện **trước** khi người dùng dán.
+    risk_warning: str = ""
+    #: Cookie còn đăng nhập được không (ping mbasic). `None` = chưa kiểm.
+    alive: bool | None = None
