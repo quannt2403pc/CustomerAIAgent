@@ -1,0 +1,122 @@
+{
+  "run_at": "2026-10-07T14:00:13.338944+00:00",
+  "provider": "antigravity",
+  "model": "gemini-3.6-flash-high",
+  "total_links": 3,
+  "status_summary": {
+    "SUCCESS": 2,
+    "PARTIAL_OR_PRIVATE": 1
+  },
+  "runs": [
+    {
+      "facebook_url": "https://www.facebook.com/vander.374801",
+      "duration_ms": 91827,
+      "exit_code": 0,
+      "stdout_is_valid_json": true,
+      "parse_error": null,
+      "output": {
+        "status": "SUCCESS",
+        "facebook_url": "https://www.facebook.com/vander.374801",
+        "profile_data": {
+          "customer_name": "Vander",
+          "visual_context": "Ảnh minh họa một người đàn ông trưởng thành có tóc đen và râu quai nón, mặc áo khoác màu nâu bên ngoài áo có họa tiết màu xanh, hai tay quấn băng. Bối cảnh phía sau mờ tối với ánh sáng tông màu ấm và các hạt sáng lơ lửng.",
+          "estimated_demographics": {
+            "gender": "Nam",
+            "estimated_age_range": "25 - 45 tuổi",
+            "apparent_lifestyle": null
+          }
+        },
+        "ethical_rapport": {
+          "core_empathy_angle": "Lắng nghe và thấu hiểu những tâm tư, vất vả mà người luôn gánh vác trách nhiệm che chở cho người khác đang lặng lẽ mang trong lòng.",
+          "dialogue_sequence_10": [
+            "Chào Vander nha. Tấm ảnh đại diện của bạn ấn tượng thật, hình ảnh người đàn ông đôi tay quấn băng giữa ánh sáng ấm làm mình khựng lại một chút.",
+            "Đôi bàn tay quấn băng đó làm mình nghĩ ngay đến hình ảnh một người luôn sẵn sàng che chở và gánh vác phần gian khổ về mình.",
+            "Những người luôn đứng ra bảo vệ người khác thường hiếm khi than vãn hay để ai thấy vết thương của mình.",
+            "Cứ phải gồng gánh và mạnh mẽ gánh vác mọi thứ liên tục như vậy, chắc hẳn đôi lúc tâm tư bên trong cũng mệt mỏi và chùng xuống lắm.",
+            "Bản thân mình cũng từng có khoảng thời gian luôn cố tỏ ra vững vàng để những người xung quanh được yên lòng.",
+            "Nhưng rồi mình nhận ra, đôi tay dù có cứng cỏi đến đâu thì cũng có lúc cần được thả lỏng và nghỉ ngơi.",
+            "Hôm nay của Vander thế nào, mọi việc có làm bạn thấy mệt lắm không?",
+            "Có bao giờ bạn ước mình được tháo hết những lớp băng đó ra và cho phép bản thân nghỉ ngơi một chút không?",
+            "Nếu một lúc nào đó cảm thấy gánh nặng trên vai quá chật chội, bạn cứ thoải mái chia sẻ với mình nhé.",
+            "Lúc nào bạn muốn tìm một người lắng nghe mà không cần phải gồng mình che chở cho ai, mình luôn ở đây."
+          ],
+          "sales_mention_check": "ZERO_SALES_CONFIRMED"
+        },
+        "evening_cadence_20pm": {
+          "trigger_time": "20:00",
+          "evening_hook_message": "Tối rồi, hy vọng anh Vander đã có một khoảng nghỉ thật êm. Nhìn ảnh đại diện với đôi tay quấn băng, mình cảm nhận anh luôn lặng lẽ gánh vác và bảo vệ người khác. Tối nay anh đã được thong thả ngơi nghỉ chưa? ☕"
+        }
+      }
+    },
+    {
+      "facebook_url": "https://www.facebook.com/yazawanico24111",
+      "duration_ms": 47281,
+      "exit_code": 0,
+      "stdout_is_valid_json": true,
+      "parse_error": null,
+      "output": {
+        "status": "SUCCESS",
+        "facebook_url": "https://www.facebook.com/yazawanico24111",
+        "profile_data": {
+          "customer_name": "Unclee Vander",
+          "visual_context": "Hình vẽ một người trưởng thành có râu và tóc tối màu, mặc áo khoác màu nâu bên ngoài áo có chi tiết màu xanh lá cây và trắng. Khung cảnh xung quanh mờ tối với ánh sáng vàng cam chiếu từ phía trên xuống.",
+          "estimated_demographics": {
+            "gender": null,
+            "estimated_age_range": null,
+            "apparent_lifestyle": null
+          }
+        },
+        "ethical_rapport": {
+          "core_empathy_angle": "Trân trọng sự trầm lặng và khả năng giữ một luồng sáng ấm áp cho riêng mình giữa những khoảng lặng mờ tối xung quanh.",
+          "dialogue_sequence_10": [
+            "Chào Unclee Vander. Nhìn ảnh đại diện của bạn, mình thực sự ấn tượng với vệt sáng ấm áp chiếu xuống giữa khung cảnh mờ tối xung quanh.",
+            "Cảm giác bức vẽ mang lại một sự tĩnh lặng rất riêng, như thể nhân vật đang giữ cho mình một góc trú ngụ bình yên vậy.",
+            "Đôi khi giữa những khoảng lặng của không gian, việc giữ được một đốm sáng ấm áp cho riêng mình thực sự là một điều rất đẹp.",
+            "Mình tin người chọn hình ảnh một người đứng trầm ngâm dưới ánh vàng ấy hẳn là người rất biết trân trọng sự tĩnh lặng bên trong.",
+            "Bản thân mình cũng thường tìm về những góc không gian trầm mặc như thế mỗi khi cần không gian riêng.",
+            "Chỉ cần chút ánh sáng dịu nhẹ cùng sự yên tĩnh là đủ để mình cảm thấy nhẹ nhõm hơn rất nhiều.",
+            "Không biết những lúc cần tìm lại sự thảnh thơi, bạn thường thích làm gì?",
+            "Hay bạn cũng chỉ thích thả mình vào một khoảng không lặng lẽ như nhân vật trong bức hình?",
+            "Dù sao thì mong bạn luôn giữ được luồng sáng ấm áp đó cho riêng mình nhé.",
+            "Nếu một lúc nào đó bạn cần một người lắng nghe mà không phán xét, cứ nhắn cho mình."
+          ],
+          "sales_mention_check": "ZERO_SALES_CONFIRMED"
+        },
+        "evening_cadence_20pm": {
+          "trigger_time": "20:00",
+          "evening_hook_message": "Tối rồi, mong bạn có một khoảng nghỉ thật êm. Mình ấn tượng với vệt sáng vàng ấm chiếu từ trên xuống giữa khung cảnh mờ tối trong avatar của bạn—cảm giác vừa bình yên vừa rất riêng."
+        }
+      }
+    },
+    {
+      "facebook_url": "https://www.facebook.com/trang.khong.ton.tai.de.kiem.chung.2026",
+      "duration_ms": 3625,
+      "exit_code": 0,
+      "stdout_is_valid_json": true,
+      "parse_error": null,
+      "output": {
+        "status": "PARTIAL_OR_PRIVATE",
+        "facebook_url": "https://www.facebook.com/trang.khong.ton.tai.de.kiem.chung.2026",
+        "profile_data": {
+          "customer_name": null,
+          "visual_context": null,
+          "estimated_demographics": {
+            "gender": null,
+            "estimated_age_range": null,
+            "apparent_lifestyle": null
+          }
+        },
+        "ethical_rapport": {
+          "core_empathy_angle": null,
+          "dialogue_sequence_10": [],
+          "sales_mention_check": "FAILED"
+        },
+        "evening_cadence_20pm": {
+          "trigger_time": "20:00",
+          "evening_hook_message": null
+        },
+        "error_note": "Không đọc được: tên hiển thị, bối cảnh ảnh đại diện. Không thu thập được dữ kiện công khai nào. Các lớp không đọc được: og_meta (HTTP 200): không có thẻ og nào dùng được; mbasic (HTTP 200): mbasic trả trang đăng nhập (HTTP 200). Trang không công khai thẻ Open Graph nào đọc được. Không tải được ảnh đại diện nên không có mô tả hình ảnh. Không có dữ kiện nào nên không ước lượng nhân khẩu học."
+      }
+    }
+  ]
+}
