@@ -1,12 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import {
-  AlarmClock,
-  BarChart3,
-  Inbox,
-  MessagesSquare,
-  Search,
-  Settings,
-} from 'lucide-react'
+import { AlarmClock, BarChart3, Inbox, MessagesSquare, Search, Settings } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import * as React from 'react'
@@ -59,7 +52,9 @@ export function AppShell() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
           <div className="flex min-w-0 items-center gap-2">
             <AlarmClock className="size-5 shrink-0 text-primary" aria-hidden="true" />
-            <span className="truncate font-mono text-sm font-semibold">AI Profiler &amp; Rapport</span>
+            <span className="truncate font-mono text-sm font-semibold">
+              AI Profiler &amp; Rapport
+            </span>
           </div>
 
           {/* `aria-label` vì có nhiều vùng điều hướng tiềm năng trên trang. */}
@@ -116,8 +111,15 @@ export function AppShell() {
         <Outlet />
       </main>
 
+      {/*
+        Câu này **đã sửa** khi luật L3 đổi (task.md X.6). Bản cũ — "không có
+        chức năng tự gửi tin nhắn cho bất kỳ ai" — giờ là một lời nói sai, và
+        sai ở đúng chỗ nguy hiểm nhất: nó nằm trên **mọi trang**, nên người vận
+        hành sẽ tin rằng không có gì đi ra ngoài.
+      */}
       <footer className="border-t border-border px-4 py-3 text-center text-xs text-muted-foreground">
-        Hệ thống chỉ <strong>soạn nháp</strong>. Không có chức năng tự gửi tin nhắn cho bất kỳ ai.
+        Chỉ gửi cho người đã <strong>chủ động nhắn Page</strong> của bạn trước, và chỉ khi bạn bấm
+        Gửi. Với người khác, hệ thống chỉ <strong>soạn nháp</strong>.
       </footer>
     </div>
   )
