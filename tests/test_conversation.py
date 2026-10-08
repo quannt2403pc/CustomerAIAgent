@@ -481,3 +481,94 @@ def test_bao_cao_kiem_duyet_duoc_luu_de_truy_vet() -> None:
     report = round_result.report_for_db()
     assert report["attempts"] == 2
     assert report["rejected"] == ["lượt 1: bẩn"]
+
+
+# ---------------------------------------------------------------------------
+# Chế độ demo (task.md X.8)
+# ---------------------------------------------------------------------------
+def test_demo_khong_bao_gio_cham_duong_gui_that() -> None:
+    """Ràng buộc quan trọng nhất của chế độ demo.
+
+    Bật demo thì Send API **không được gọi**, kể cả khi hội thoại đủ điều kiện
+    gửi tự động. Thiếu vế `&& !demoMode`, một buổi trình bày trước khách sẽ bắn
+    tin thật cho người thật — đúng thứ chế độ này sinh ra để tránh.
+
+    Kiểm ở **mã nguồn** vì đây là một dòng điều kiện duy nhất đứng giữa "trình
+    bày an toàn" và "gửi nhầm cho khách hàng".
+    """
+    source = (REPO_ROOT / "web" / "src" / "pages" / "conversation.tsx").read_text(encoding="utf-8")
+
+    assert (
+        "const autoSend = conversation.can_send && !demoMode" in source
+    ), "demo phải vô hiệu hoá đường gửi tự động"
+
+    # Nhánh demo phải nằm TRƯỚC `window.open` — nếu sau, Facebook vẫn bị mở.
+    assert source.index("if (demoMode) {") < source.index(
+        "window.open("
+    ), "nhánh demo phải chặn trước khi mở Facebook"
+
+
+def test_tin_demo_duoc_danh_dau_trong_du_lieu_khong_chi_tren_giao_dien() -> None:
+    """Bản ghi demo phải phân biệt được với bản ghi thật, **mãi mãi**.
+
+    Nếu chỉ tô màu ở giao diện lúc đang bật demo thì sau buổi trình bày không ai
+    còn biết tin nào đã thật sự gửi cho khách. Đó đúng là kiểu dữ liệu sai mà cả
+    dự án này sinh ra để chống — nên dấu phải nằm trong DB.
+    """
+    from app.routers.conversations import DEMO_MARK
+
+    assert DEMO_MARK == "demo:"
+
+    source = (REPO_ROOT / "app" / "routers" / "conversations.py").read_text(encoding="utf-8")
+    # Cả hai lối ghi (tin của mình và câu trả lời giả định) đều phải đánh dấu.
+    assert source.count('f"{DEMO_MARK}{uuid.uuid4()}" if body.demo else None') == 2
+
+    # Và `is_demo` phải suy ra từ chính cột đó, không phải từ cờ do FE gửi lên.
+    assert "is_demo=bool(m.external_id and m.external_id.startswith(DEMO_MARK))" in source
+
+
+def test_noi_tin_phai_khoa_hoi_thoai_truoc_khi_tinh_seq() -> None:
+    """Chặn lại điều kiện đua đã gây HTTP 500 thật (task.md I-63).
+
+    Trước khi sửa, `_append_message` đọc `max(seq)+1` rồi mới chèn. Hai request
+    đồng thời cùng đọc ra `3`, cùng chèn `seq=3`, và cái thứ hai nổ
+    `UniqueViolation` → 500. Chỉ cần một cú **bấm đúp** là tái hiện.
+
+    Đọc AST thay vì tin vào mắt người đọc: thứ tự hai câu lệnh này là toàn bộ
+    thứ ngăn cách giữa "ghi đúng" và "500 giữa buổi demo".
+    """
+    import ast
+
+    source = (REPO_ROOT / "app" / "routers" / "conversations.py").read_text(encoding="utf-8")
+    func = next(
+        node
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "_append_message"
+    )
+    statements = func.body
+    if (
+        statements
+        and isinstance(statements[0], ast.Expr)
+        and isinstance(statements[0].value, ast.Constant)
+    ):
+        statements = statements[1:]  # bỏ docstring — nó *giải thích* cả hai câu
+    body = "\n".join(ast.unparse(node) for node in statements)
+
+    assert "with_for_update()" in body, "thiếu khoá hàng hội thoại — điều kiện đua quay lại"
+    assert body.index("with_for_update()") < body.index(
+        "func.max(ConversationMessage.seq)"
+    ), "phải khoá TRƯỚC khi tính seq, nếu không khoá chẳng bảo vệ được gì"
+
+
+def test_ba_nguon_goc_tin_phan_biet_duoc_bang_external_id() -> None:
+    """`external_id` mang đúng ba trạng thái, không chồng lấn nhau.
+
+    - `mid.*`  → Facebook xác nhận đã gửi thật
+    - `NULL`   → người vận hành tự gửi tay bên ngoài
+    - `demo:*` → chưa từng gửi, chỉ để trình bày
+    """
+    from app.routers.conversations import DEMO_MARK
+
+    assert not DEMO_MARK.startswith("mid")
+    for real_id in ("mid.abc123", "mid.$xyz"):
+        assert not real_id.startswith(DEMO_MARK)

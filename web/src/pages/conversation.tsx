@@ -1,4 +1,12 @@
-import { CheckCheck, ExternalLink, Lightbulb, MessageSquarePlus, Send, X } from 'lucide-react'
+import {
+  CheckCheck,
+  ExternalLink,
+  FlaskConical,
+  Lightbulb,
+  MessageSquarePlus,
+  Send,
+  X,
+} from 'lucide-react'
 import * as React from 'react'
 import { useParams } from 'react-router-dom'
 
@@ -9,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, Textarea } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useDemoMode } from '@/features/conversations/demo-mode'
 import {
   useCloseConversation,
   useConversation,
@@ -69,6 +78,7 @@ function ConversationView({
   const [draft, setDraft] = React.useState('')
   const [chosenId, setChosenId] = React.useState<string | null>(null)
   const [reply, setReply] = React.useState('')
+  const [demoMode, setDemoMode] = useDemoMode()
 
   const sendViaPage = useSendViaPage(conversation.id)
   const recordSent = useRecordSent(conversation.id)
@@ -84,7 +94,12 @@ function ConversationView({
    * có link mở Facebook không" sẽ sai: link đó dựng được từ bất kỳ URL hợp
    * lệ nào, còn quyền gửi thì không.
    */
-  const autoSend = conversation.can_send
+  /*
+   * `&& !demoMode` là ràng buộc quan trọng nhất của chế độ demo: bật demo thì
+   * **không bao giờ** gọi Send API, kể cả khi hội thoại đủ điều kiện gửi thật.
+   * Thiếu vế này, một buổi trình bày sẽ bắn tin thật cho khách hàng thật.
+   */
+  const autoSend = conversation.can_send && !demoMode
   const sending = autoSend ? sendViaPage.isPending : recordSent.isPending
 
   /**
@@ -109,6 +124,26 @@ function ConversationView({
             setDraft('')
             setChosenId(null)
             toast.success('Đã gửi. Khách trả lời thì hội thoại tự cập nhật.')
+          },
+          onError: (error) => toast.error(errorMessage(error)),
+        },
+      )
+      return
+    }
+
+    /*
+     * Chế độ demo: ghi thẳng vào lịch sử, **không** mở Facebook, **không** chép
+     * clipboard. Nhánh này phải nằm TRƯỚC phần `window.open` bên dưới — đó là
+     * toàn bộ lý do chế độ này tồn tại.
+     */
+    if (demoMode) {
+      recordSent.mutate(
+        { text, suggestion_id: chosenId, demo: true },
+        {
+          onSuccess: () => {
+            setDraft('')
+            setChosenId(null)
+            toast.info('Chế độ demo: đã ghi vào lịch sử. Không có tin nào được gửi đi.')
           },
           onError: (error) => toast.error(errorMessage(error)),
         },
@@ -170,11 +205,15 @@ function ConversationView({
     const text = reply.trim()
     if (!text) return
     recordReply.mutate(
-      { text },
+      { text, demo: demoMode },
       {
         onSuccess: () => {
           setReply('')
-          toast.success('Đã ghi phản hồi. AI đang gợi ý tin tiếp theo dựa trên câu đó.')
+          toast.success(
+            demoMode
+              ? 'Chế độ demo: đã ghi câu trả lời giả định. AI đang gợi ý tiếp.'
+              : 'Đã ghi phản hồi. AI đang gợi ý tin tiếp theo dựa trên câu đó.',
+          )
         },
         onError: (error) => toast.error(errorMessage(error)),
       },
@@ -184,6 +223,54 @@ function ConversationView({
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
       <div className="flex min-w-0 flex-col gap-4">
+        {/*
+          Công tắc demo + băng cảnh báo nằm **trên cùng**, trước cả tên khách.
+          Người đang trình bày phải thấy ngay mình đang ở chế độ nào; một chế độ
+          làm app trông như đã gửi mà thực ra chưa, nếu kín đáo, là thứ nguy
+          hiểm nhất trong cả sản phẩm này.
+        */}
+        <div
+          className={cn(
+            'flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3',
+            demoMode
+              ? 'border-warning/50 bg-warning/10'
+              : 'border-dashed border-border bg-transparent',
+          )}
+        >
+          <div className="flex min-w-0 items-start gap-2">
+            <FlaskConical
+              className={cn(
+                'mt-0.5 size-4 shrink-0',
+                demoMode ? 'text-warning' : 'text-muted-foreground',
+              )}
+              aria-hidden="true"
+            />
+            <p className="text-sm">
+              {demoMode ? (
+                <>
+                  <strong className="text-warning">Đang ở chế độ demo.</strong>{' '}
+                  <span className="text-foreground">
+                    Bấm Gửi chỉ ghi vào lịch sử — <strong>không tin nào được gửi đi</strong>, không
+                    mở Facebook. Mọi tin tạo ở chế độ này đều được đánh dấu.
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted-foreground">
+                  Chế độ demo: trình bày trọn luồng mà không gửi tin thật, không mở Facebook.
+                </span>
+              )}
+            </p>
+          </div>
+          <Button
+            variant={demoMode ? 'secondary' : 'outline'}
+            size="sm"
+            aria-pressed={demoMode}
+            onClick={() => setDemoMode(!demoMode)}
+          >
+            {demoMode ? 'Tắt chế độ demo' : 'Bật chế độ demo'}
+          </Button>
+        </div>
+
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -255,8 +342,8 @@ function ConversationView({
 
               <div className="flex flex-wrap items-center gap-2">
                 <Button onClick={handleSend} loading={sending} disabled={!draft.trim()}>
-                  <Send aria-hidden="true" />
-                  {autoSend ? 'Gửi' : 'Gửi qua Messenger'}
+                  {demoMode ? <FlaskConical aria-hidden="true" /> : <Send aria-hidden="true" />}
+                  {demoMode ? 'Gửi (demo)' : autoSend ? 'Gửi' : 'Gửi qua Messenger'}
                 </Button>
                 {/*
                   Hai đường khác nhau, nhãn cũng phải khác nhau (task.md I-58):
@@ -264,7 +351,7 @@ function ConversationView({
                   thì người vận hành còn phải bấm "Nhắn tin" một lần nữa. Dùng
                   chung một nhãn thì lần thứ hai họ sẽ tưởng hệ thống hỏng.
                 */}
-                {!autoSend && conversation.profile_url ? (
+                {!demoMode && !autoSend && conversation.profile_url ? (
                   <Button asChild variant="outline" size="sm">
                     <a href={conversation.profile_url} target="_blank" rel="noopener noreferrer">
                       <ExternalLink aria-hidden="true" />
@@ -279,7 +366,14 @@ function ConversationView({
                 gửi trong khi nó không, hay ngược lại, đều là hiểu nhầm nguy
                 hiểm nhất của cả sản phẩm.
               */}
-              {autoSend ? (
+              {demoMode ? (
+                <p className="text-xs text-muted-foreground">
+                  <strong className="text-warning">Chế độ demo:</strong> bấm &quot;Gửi&quot; chỉ ghi
+                  câu này vào lịch sử bên trên để trình bày.{' '}
+                  <strong>Không có tin nào rời khỏi máy</strong>, không mở Facebook, và Send API
+                  không được gọi kể cả khi hội thoại đủ điều kiện gửi thật.
+                </p>
+              ) : autoSend ? (
                 <p className="text-xs text-muted-foreground">
                   Bấm &quot;Gửi&quot; là tin <strong>đi thẳng</strong> qua Page của bạn. Gửi được vì
                   người này đã chủ động nhắn Page trước.
@@ -386,8 +480,28 @@ function Transcript({ messages }: { messages: ConversationMessage[] }) {
               )}
             >
               {/* Nhãn vai bằng chữ, không chỉ bằng vị trí/màu (plan.md §6.2). */}
-              <span className="mb-0.5 block text-[11px] font-medium text-muted-foreground">
-                {mine ? 'Bạn đã gửi' : 'Khách trả lời'} · {formatDateTime(message.created_at)}
+              <span className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                {/*
+                  Tin tạo ở chế độ demo phải **nhìn là biết**, mãi mãi — không
+                  chỉ trong lúc đang bật demo. Sau buổi trình bày, nếu bản ghi
+                  demo trông y hệt bản ghi thật thì không ai còn phân biệt được
+                  tin nào đã thật sự gửi cho khách.
+                */}
+                {message.is_demo ? (
+                  <span className="rounded bg-warning/15 px-1.5 py-0.5 font-semibold text-warning">
+                    DEMO · chưa gửi
+                  </span>
+                ) : null}
+                <span>
+                  {mine
+                    ? message.is_demo
+                      ? 'Ghi để trình bày'
+                      : 'Bạn đã gửi'
+                    : message.is_demo
+                      ? 'Câu trả lời giả định'
+                      : 'Khách trả lời'}{' '}
+                  · {formatDateTime(message.created_at)}
+                </span>
               </span>
               {message.text}
             </div>

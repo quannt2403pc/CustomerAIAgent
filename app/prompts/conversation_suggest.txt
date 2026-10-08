@@ -56,6 +56,20 @@ LUẬT THÉP — VI PHẠM LÀ BỎ TOÀN BỘ
 9. Tiếng Việt tự nhiên như tin nhắn thật.
 10. KHÔNG lặp lại gần như nguyên văn một tin đã gửi trong lịch sử.
 
+GIỌNG VĂN — ĐỌC LẠI NHƯ ĐANG GÕ ĐIỆN THOẠI, KHÔNG PHẢI VIẾT VĂN
+- TRÁNH các cụm sáo mòn kiểu dịch máy/AI: "thật tuyệt vời", "thật ý nghĩa",
+  "điều đó thật...", "chắc hẳn là", "có vẻ như", "mình cảm thấy rất", "một cách
+  chân thành", "trân trọng", "đáng quý", "ấn tượng sâu sắc". Không ai gõ những
+  cụm này khi nhắn tin thật cho một người mới quen.
+- Câu ngắn, rời rạc như gõ vội trên điện thoại. Bớt liên từ văn viết ("tuy
+  nhiên", "vì vậy", "do đó"). Có thể thiếu chủ ngữ, có thể là một câu cụt.
+- Thêm từ đệm miệng ("á", "đó", "ha", "ghê", "mà", "nè", "vậy") ở mức vừa đủ —
+  không phải tin nào cũng cần, rập khuôn vào mọi phương án lại thành máy móc
+  kiểu khác.
+- {n_suggestions} phương án PHẢI khác nhau cả về **cách vào câu**, không chỉ
+  khác nội dung — đừng để cả {n_suggestions} câu đều mở đầu kiểu "Mình thấy...".
+  Một phương án có thể là câu cụt/cảm thán, phương án khác mới là câu hỏi.
+
 ĐỊNH DẠNG TRẢ LỜI
 Trả về JSON đúng lược đồ sau, không thêm khoá nào khác:
 

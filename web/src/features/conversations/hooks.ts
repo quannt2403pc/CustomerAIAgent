@@ -84,6 +84,8 @@ export function useRecordSent(id: string | null) {
   return useConversationMutation<{
     text: string
     suggestion_id?: string | null
+    /** Chế độ demo — ghi vào lịch sử nhưng đánh dấu là chưa từng gửi. */
+    demo?: boolean
   }>(
     (conversationId, body) =>
       api.post<Conversation>(`/api/conversations/${conversationId}/record-sent`, body),
@@ -93,7 +95,7 @@ export function useRecordSent(id: string | null) {
 
 /** Dán phản hồi của khách → backend ghi lại **và** sinh gợi ý lượt kế tiếp. */
 export function useRecordReply(id: string | null) {
-  return useConversationMutation<{ text: string }>(
+  return useConversationMutation<{ text: string; demo?: boolean }>(
     (conversationId, body) =>
       api.post<Conversation>(`/api/conversations/${conversationId}/reply`, body),
     id,

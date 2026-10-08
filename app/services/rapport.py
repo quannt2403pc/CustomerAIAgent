@@ -49,6 +49,20 @@ _HOLLOW_PRAISE = (
     "hoàn hảo",
 )
 
+# Cụm sáo mòn kiểu dịch máy/AI — không ai gõ khi nhắn tin thật cho người mới
+# quen. Khác với _HOLLOW_PRAISE (khen quá đà), đây là *văn phong*, có thể xuất
+# hiện ở bất kỳ câu nào, không chỉ câu khen.
+_AI_CLICHES = (
+    "thật tuyệt vời",
+    "thật ý nghĩa",
+    "điều đó thật",
+    "chắc hẳn là",
+    "có vẻ như",
+    "cảm thấy rất",
+    "một cách chân thành",
+    "ấn tượng sâu sắc",
+)
+
 _EMOJI = re.compile(
     "["
     "\U0001f300-\U0001faff"
@@ -225,6 +239,11 @@ def check_style(messages: list[str]) -> list[StyleIssue]:
         for praise in _HOLLOW_PRAISE:
             if praise in lowered:
                 issues.append(StyleIssue(seq, "khen sáo rỗng", f"“{praise}”"))
+                break
+
+        for cliche in _AI_CLICHES:
+            if cliche in lowered:
+                issues.append(StyleIssue(seq, "nghe như văn dịch/AI", f"“{cliche}”"))
                 break
 
     return issues

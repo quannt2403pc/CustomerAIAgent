@@ -267,6 +267,15 @@ export interface ConversationMessage {
   role: MessageRole | string
   text: string
   created_at: string
+  /**
+   * Tin được tạo ở **chế độ demo** — không có tin thật nào đi hay đến.
+   *
+   * Backend suy ra từ `external_id` bắt đầu bằng `demo:`. Giao diện **phải**
+   * hiện rõ, kể cả sau khi đã tắt chế độ demo: nếu bản ghi demo trông y hệt bản
+   * ghi thật thì sau buổi trình bày không ai phân biệt được tin nào đã thật sự
+   * gửi cho khách.
+   */
+  is_demo: boolean
 }
 
 export interface Suggestion {

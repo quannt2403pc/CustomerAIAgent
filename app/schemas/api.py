@@ -360,6 +360,9 @@ class RecordSentRequest(_Api):
     text: str = Field(min_length=1, max_length=2000)
     #: Gợi ý nào đã được chọn (nếu có). Để trống nghĩa là người vận hành tự viết.
     suggestion_id: str | None = None
+    #: Chế độ demo: ghi lại **như thể** đã gửi, nhưng không có tin nào rời khỏi
+    #: máy. Tin được đánh dấu trong DB để về sau không ai nhầm nó với tin thật.
+    demo: bool = False
 
 
 class RecordReplyRequest(_Api):
@@ -370,6 +373,8 @@ class RecordReplyRequest(_Api):
     """
 
     text: str = Field(min_length=1, max_length=4000)
+    #: Chế độ demo — câu này do người trình bày tự nghĩ, không phải khách nói.
+    demo: bool = False
 
 
 class ConversationMessageOut(_Api):
@@ -378,6 +383,10 @@ class ConversationMessageOut(_Api):
     role: str  # "operator" | "customer"
     text: str
     created_at: datetime
+    #: Tin được tạo ở **chế độ demo** — không có tin thật nào đi hay đến.
+    #: Giao diện phải hiện rõ điều này, nếu không bản ghi demo trông y hệt bản
+    #: ghi thật và cả hệ thống mất tính trung thực.
+    is_demo: bool = False
 
 
 class SuggestionOut(_Api):
