@@ -538,3 +538,74 @@ async def test_empty_messages_never_claim_zero_sales(profile_fixture) -> None:
         ValidatedSequence(passed=True, attempts=1, messages=[], sales_report=report).sales_check
         == SALES_CHECK_FAILED
     )
+
+
+# ---------------------------------------------------------------------------
+# I-62 — `squash()` xoá ranh giới từ nên bắt oan thực thể
+# ---------------------------------------------------------------------------
+def test_khong_bat_oan_vo_trong_tu_voi() -> None:
+    """Lỗi đã làm hỏng cả pipeline, không phải chuyện lý thuyết.
+
+    `squash()` xoá **cả dấu cách**, nên cả câu dính liền:
+
+        squash("vợ")                    -> "vo"
+        squash("… trò chuyện với bạn")  -> "…trochuyenvoiban"
+        "vo" in "…voiban"               -> True
+
+    Tức **mọi** tin nhắn chứa "với" — một trong những từ phổ biến nhất tiếng
+    Việt — đều bị gán là nhắc "vợ". Đo thật: 4 lượt phân tích liên tiếp đều ra
+    `FAILED_VALIDATION` dù nội dung hoàn toàn sạch.
+    """
+    from app.services.validators import mentions_term
+
+    cau = "Tấm ảnh của bạn nhìn vừa ngầu, mình muốn trò chuyện với bạn."
+    for term in ("vợ", "chồng", "mẹ", "con", "bố", "cô"):
+        assert not mentions_term(cau, term), f"bắt oan {term!r} trong câu chỉ có 'với'"
+
+
+@pytest.mark.parametrize(
+    "cau, term",
+    [
+        ("Vợ bạn chắc tự hào lắm.", "vợ"),
+        ("Mẹ chồng bạn thế nào rồi?", "mẹ chồng"),
+        ("Bạn làm y tá ở đâu vậy?", "y tá"),
+        ("vợ mình cũng thích món đó", "vợ"),
+    ],
+)
+def test_van_bat_dung_khi_nhac_that(cau, term) -> None:
+    """Sửa báo động giả **không được** làm mất khả năng bắt vi phạm thật."""
+    from app.services.validators import mentions_term
+
+    assert mentions_term(cau, term)
+
+
+def test_grounding_khong_con_loai_oan_tin_sach() -> None:
+    """Tin sạch phải qua được; tin bịa dữ kiện gia đình vẫn phải bị loại."""
+    from app.services.validators import validate_grounding
+
+    evidence = "Ảnh đại diện: một người đàn ông có râu quai nón."
+    report = validate_grounding(
+        [
+            "Mình muốn trò chuyện với bạn về bức ảnh này.",
+            "Tấm hình của bạn nhìn rất có chiều sâu, mình ấn tượng với nó.",
+        ],
+        evidence_corpus=evidence,
+    )
+    assert report.passed, f"loại oan tin sạch: {report.ungrounded_claims}"
+
+    bad = validate_grounding(["Vợ bạn chắc tự hào lắm."], evidence_corpus=evidence)
+    assert not bad.passed
+    assert bad.ungrounded_claims[0].term == "vợ"
+
+
+def test_blocklist_van_dung_squash_de_chong_lach() -> None:
+    """`squash` **không bị bỏ** — nó vẫn đúng cho việc nó sinh ra.
+
+    Chống lách kiểu "D r . B e e" cần xoá ranh giới từ; đó chính là mục đích.
+    Lỗi I-62 là dùng lại nó cho **đối chiếu thực thể**, nơi ranh giới từ mới là
+    thứ quan trọng nhất.
+    """
+    from app.services.validators import check_blocklist, squash
+
+    assert squash("D r . B e e") == "drbee"
+    assert check_blocklist(["Bên mình có D-R-B-E-E giảm giá nhé"])

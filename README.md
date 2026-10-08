@@ -31,6 +31,21 @@ có thật**, rồi soạn chuỗi tin nhắn làm quen **0% chào bán**.
 Cả hai cách đều cần thêm **một tài khoản Google** (để đăng nhập AI) **hoặc** một
 **Google API key**. Lấy ở bước nào thì [Hướng dẫn sử dụng, mục 3](HUONG_DAN_SU_DUNG.md#3-bật-bộ-não-ai-bắt-buộc) nói rõ.
 
+> ### 💡 Dùng Windows?
+>
+> Các lệnh dưới đây viết theo kiểu macOS/Linux. Trên Windows, chỉ có **một lệnh
+> khác**: thay `cp` bằng `copy`.
+>
+> | Tài liệu ghi | Windows (Command Prompt / PowerShell) |
+> |---|---|
+> | `cp .env.example .env` | `copy .env.example .env` |
+> | `./CLIProxyAPI -config …` | `CLIProxyAPI.exe -config …` |
+>
+> Mọi lệnh `docker`, `python`, `npm`, `git`, `curl` đều giống hệt nhau.
+>
+> Nếu bạn cài **Git for Windows**, mở **Git Bash** thì dùng được nguyên văn mọi
+> lệnh, không phải đổi gì.
+
 ---
 
 # Cách 1 — Docker
@@ -60,7 +75,13 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-Mở `.env` bằng trình soạn thảo bất kỳ (Notepad cũng được) và điền:
+Mở file `.env` bằng trình soạn thảo bất kỳ — Notepad, VS Code, TextEdit đều
+được. File này nằm ngay trong thư mục dự án.
+
+> ℹ️ Trên Windows, Explorer có thể giấu file bắt đầu bằng dấu chấm. Nếu không
+> thấy `.env`, bật **View → Hidden items**, hoặc mở bằng lệnh `notepad .env`.
+
+Điền ba dòng sau (các dòng khác cứ để nguyên):
 
 ```ini
 APP_ENCRYPTION_KEY=<dán mã thứ nhất>

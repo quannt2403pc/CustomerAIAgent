@@ -346,6 +346,46 @@ class GroundingReport:
         }
 
 
+#: Cache regex cho mỗi term — dựng regex 44 lần cho mỗi tin nhắn là lãng phí.
+_TERM_PATTERNS: dict[str, re.Pattern[str]] = {}
+
+
+def _term_pattern(term: str) -> re.Pattern[str]:
+    """Regex khớp `term` như **một từ trọn vẹn**, không phải chuỗi con.
+
+    Vì sao không dùng `squash()` ở đây (task.md I-62, đo thật): `squash` **xoá cả
+    dấu cách**, nên cả câu dính liền thành một chuỗi và mọi ranh giới từ biến
+    mất. Hậu quả đo được:
+
+        squash("vợ")                       -> "vo"
+        squash("… trò chuyện với bạn.")    -> "…trochuyenvoiban"
+        "vo" in "…voiban"                  -> True   ← BÁO ĐỘNG GIẢ
+
+    Tức **mọi** tin nhắn chứa chữ "với" đều bị gán là nhắc "vợ". Đó là một trong
+    những từ phổ biến nhất tiếng Việt, nên validator gần như luôn đỏ và cả
+    pipeline rơi vào `FAILED_VALIDATION` dù nội dung hoàn toàn sạch.
+
+    `squash` **vẫn đúng** cho blocklist chống lách ("D r . B e e" → "drbee") —
+    ở đó xoá ranh giới từ chính là mục đích. Dùng lại nó cho việc đối chiếu thực
+    thể mới là sai chỗ.
+
+    Khớp trên bản **còn dấu**: tiếng Việt viết đúng luôn có dấu, và giữ dấu giúp
+    phân biệt "vợ" với "vô"/"với". Ranh giới dùng lookaround trên ký tự chữ để
+    "mẹ chồng" vẫn khớp được như một cụm.
+    """
+    cached = _TERM_PATTERNS.get(term)
+    if cached is None:
+        escaped = re.escape(term.lower().strip())
+        cached = re.compile(rf"(?<![^\W\d_]){escaped}(?![^\W\d_])", re.IGNORECASE)
+        _TERM_PATTERNS[term] = cached
+    return cached
+
+
+def mentions_term(text: str, term: str) -> bool:
+    """`term` có xuất hiện trong `text` như một từ trọn vẹn không?"""
+    return _term_pattern(term).search(text.lower()) is not None
+
+
 def validate_grounding(messages: list[str], evidence_corpus: str) -> GroundingReport:
     """Mọi thực thể trong tin nhắn phải khớp một chuỗi trong bằng chứng.
 
@@ -354,7 +394,6 @@ def validate_grounding(messages: list[str], evidence_corpus: str) -> GroundingRe
     sinh lại không bao giờ dừng.
     """
     report = GroundingReport()
-    evidence = squash(evidence_corpus)
 
     for seq, message in enumerate(messages, 1):
         for kind, terms in (
@@ -363,7 +402,7 @@ def validate_grounding(messages: list[str], evidence_corpus: str) -> GroundingRe
             ("địa danh", _PLACE_TERMS),
         ):
             for term in terms:
-                if squash(term) in squash(message) and squash(term) not in evidence:
+                if mentions_term(message, term) and not mentions_term(evidence_corpus, term):
                     report.ungrounded_claims.append(
                         UngroundedClaim(seq, kind, term, _excerpt(message, term))
                     )

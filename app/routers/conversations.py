@@ -65,6 +65,19 @@ log = get_logger(__name__)
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
+#: Tiền tố đánh dấu tin sinh ra ở **chế độ demo**, lưu vào
+#: `conversation_messages.external_id`.
+#:
+#: Vì sao phải đánh dấu trong DB chứ không chỉ ở giao diện: nếu không, bản ghi
+#: demo trông **y hệt** bản ghi thật. Sau buổi demo, không ai — kể cả người viết
+#: ra nó — phân biệt được tin nào đã thật sự gửi cho khách. Đó đúng là kiểu dữ
+#: liệu sai mà cả dự án này sinh ra để chống.
+#:
+#: Dùng lại cột `external_id` (đã có, nullable, UNIQUE) thay vì thêm cột mới: ba
+#: giá trị của nó nói đúng ba nguồn gốc — `mid.*` là Facebook xác nhận đã gửi,
+#: `NULL` là người vận hành tự gửi tay, `demo:*` là chưa từng gửi.
+DEMO_MARK = "demo:"
+
 #: Những khoá evidence mang **chữ của bài đăng**. Dùng để nạp phần "tiêu đề /
 #: nội dung bài đăng" vào prompt (yêu cầu người dùng 2026-10-07, task.md X.5).
 CAPTION_KEYS = ("post_text", "post_caption", "caption", "bio", "about")
@@ -286,14 +299,24 @@ async def record_sent(
     conversation = await _get_open_conversation(session, conversation_id)
     profile = await _profile_of(session, conversation)
 
-    await _append_message(session, conversation, role="operator", text=body.text)
+    await _append_message(
+        session,
+        conversation,
+        role="operator",
+        text=body.text,
+        external_id=f"{DEMO_MARK}{uuid.uuid4()}" if body.demo else None,
+    )
 
     if body.suggestion_id:
         suggestion = await session.get(ConversationSuggestion, uuid.UUID(body.suggestion_id))
         if suggestion is not None and suggestion.conversation_id == conversation.id:
             suggestion.chosen = True
 
-    await audit.record(session, "conversation.sent", target=str(conversation.id))
+    await audit.record(
+        session,
+        "conversation.sent_demo" if body.demo else "conversation.sent",
+        target=str(conversation.id),
+    )
     return await _render(session, conversation, profile)
 
 
@@ -310,10 +333,20 @@ async def record_reply(
     conversation = await _get_open_conversation(session, conversation_id)
     profile = await _profile_of(session, conversation)
 
-    await _append_message(session, conversation, role="customer", text=body.text)
+    await _append_message(
+        session,
+        conversation,
+        role="customer",
+        text=body.text,
+        external_id=f"{DEMO_MARK}{uuid.uuid4()}" if body.demo else None,
+    )
 
     next_round = await _next_round(session, conversation.id)
-    await audit.record(session, "conversation.reply", target=str(conversation.id))
+    await audit.record(
+        session,
+        "conversation.reply_demo" if body.demo else "conversation.reply",
+        target=str(conversation.id),
+    )
     await _make_suggestions(session, conversation, profile, round_index=next_round)
     return await _render(session, conversation, profile)
 
@@ -436,7 +469,12 @@ async def _render(
         closed_at=conversation.closed_at,
         messages=[
             ConversationMessageOut(
-                id=str(m.id), seq=m.seq, role=m.role, text=m.text, created_at=m.created_at
+                id=str(m.id),
+                seq=m.seq,
+                role=m.role,
+                text=m.text,
+                created_at=m.created_at,
+                is_demo=bool(m.external_id and m.external_id.startswith(DEMO_MARK)),
             )
             for m in messages
         ],
@@ -468,6 +506,29 @@ async def _append_message(
     text: str,
     external_id: str | None = None,
 ) -> None:
+    """Nối một lượt vào cuối hội thoại, `seq` liên tục và không trùng.
+
+    **Khoá hàng hội thoại trước khi tính `seq`** (task.md I-63, đo thật từ lỗi
+    500 trong log). Trước đây đây là một tranh chấp đọc-rồi-ghi kinh điển:
+
+        request A: SELECT max(seq)+1 → 3
+        request B: SELECT max(seq)+1 → 3     (A chưa kịp ghi)
+        request A: INSERT seq=3              ok
+        request B: INSERT seq=3              → UniqueViolation → HTTP 500
+
+    Xảy ra thật chỉ với một cú **bấm đúp** vào nút Gửi. Ràng buộc UNIQUE đã làm
+    đúng việc của nó — chặn hai tin cùng số thứ tự — nhưng ứng dụng để lỗi tràn
+    ra thành 500 thay vì xử lý.
+
+    `FOR UPDATE` trên đúng **một hàng** `conversations` khiến các lần nối vào
+    *cùng một hội thoại* xếp hàng, còn hội thoại khác nhau vẫn chạy song song.
+    Chọn cách này thay vì bắt `IntegrityError` rồi thử lại: thử lại vẫn có thể
+    trượt lần nữa, và nó biến một điều kiện đua thành một vòng lặp may rủi.
+    """
+    await session.execute(
+        select(Conversation.id).where(Conversation.id == conversation.id).with_for_update()
+    )
+
     next_seq = (
         await session.execute(
             select(func.coalesce(func.max(ConversationMessage.seq), 0) + 1).where(
